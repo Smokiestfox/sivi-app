@@ -48,6 +48,18 @@ Yêu cầu Node.js 20.9 trở lên, Docker và các cấu hình Google OAuth, SM
 
 Các lệnh `npm run lint`, `npx tsc --noEmit` và `npm run build` dùng để kiểm tra mã nguồn.
 
+## Mock data
+
+Các fixture TypeScript dùng cho phát triển giao diện và kiểm thử nằm trong `data/mock/`:
+
+- `users.ts` và `roommatePosts.ts`: người dùng và bài tìm roommate.
+- `reviewPosts.ts`: bài review địa điểm.
+- `comments.ts`: bình luận gắn với bài roommate/review.
+- `reports.ts`: báo cáo bài viết/bình luận cùng kết quả moderation để thử màn admin.
+- `notifications.ts`: thông báo trên trang cá nhân.
+
+Các fixture này không được API nạp tự động và không được ghi vào PostgreSQL. Muốn dựng dữ liệu demo hiển thị qua API, hãy thêm seed riêng trong `db/seeds/` và một lệnh chạy chỉ định rõ cho môi trường development; không dùng fixture thay cho OTP, OAuth hoặc kết quả AI moderation thật.
+
 ## Hợp đồng AI moderation
 
 SiVi gửi JSON `POST` đến `AI_MODERATION_URL`:
