@@ -17,12 +17,14 @@ export interface User {
 export interface University {
   id: string;
   name: string;
-  domain: string; // e.g., @vnu.edu.vn
+  domain: string;
 }
 
 export interface OTPVerification {
   email: string;
-  otp: string;
+  userId: string;
+  universityId: string;
+  codeHash: string;
   attempts: number;
   lockedUntil?: string;
   expiresAt: string;
@@ -43,6 +45,8 @@ export interface BasePost {
   downvotes: number;
   commentCount: number;
   reportCount: number;
+  currentUserVote?: 1 | -1 | null;
+  author?: Pick<User, 'name' | 'avatar'>;
 }
 
 export interface RoommatePost extends BasePost {
@@ -51,6 +55,7 @@ export interface RoommatePost extends BasePost {
   area: string;
   district: string;
   roomType: 'private' | 'shared' | 'studio';
+  peopleNeeded: number;
   amenities: string[];
   genderPreference: 'male' | 'female' | 'any';
   contactInfo: string;
@@ -122,14 +127,11 @@ export interface Notification {
 }
 
 export const UNIVERSITIES: University[] = [
-  { id: 'vnu', name: 'Đại học Quốc gia TP.HCM', domain: '@vnu.edu.vn' },
-  { id: 'hcmut', name: 'Đại học Bách Khoa TP.HCM', domain: '@hcmut.edu.vn' },
-  { id: 'ueh', name: 'Đại học Kinh tế TP.HCM', domain: '@ueh.edu.vn' },
-  { id: 'ou', name: 'Đại học Mở TP.HCM', domain: '@ou.edu.vn' },
-  { id: 'hcmuaf', name: 'Đại học Nông Lâm TP.HCM', domain: '@hcmuaf.edu.vn' },
-  { id: 'ctu', name: 'Đại học Cần Thơ', domain: '@ctu.edu.vn' },
-  { id: 'hust', name: 'Đại học Bách Khoa Hà Nội', domain: '@hust.edu.vn' },
-  { id: 'vnu-hn', name: 'Đại học Quốc gia Hà Nội', domain: '@vnu.edu.vn' },
+  { id: 'uit', name: 'ĐH Công nghệ Thông tin (UIT)', domain: '@gm.uit.edu.vn' },
+  { id: 'hcmut', name: 'ĐH Bách Khoa (HCMUT)', domain: '@hcmut.edu.vn' },
+  { id: 'iu', name: 'ĐH Quốc tế (IU)', domain: '@student.hcmiu.edu.vn' },
+  { id: 'uel', name: 'ĐH Kinh tế - Luật (UEL)', domain: '@st.uel.edu.vn' },
+  { id: 'ussh-hcm', name: 'ĐH KHXH&NV (USSH-HCM)', domain: '@hcmussh.edu.vn' },
 ];
 
 export const ROOMMATE_TAGS = [
