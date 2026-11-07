@@ -210,7 +210,7 @@ Không chỉ gửi title + content.
 6. Nếu transaction lỗi, xóa file vừa ghi.
 7. Khi sửa, client gửi keepImageIds; ảnh bỏ thì xóa row và file.
 
-Giới hạn:
+Giới hạn tạm thời:
 
 - Tối đa 5 ảnh/bài.
 - Tối đa 5 MB/ảnh.
