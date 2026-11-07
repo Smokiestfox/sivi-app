@@ -5,8 +5,7 @@
 **Phạm vi:** kiến trúc web app SiVi, dùng cho skeleton và các PR tiếp theo.  
 **Bộ diagram:** xem **diagrams.md**.
 
-## 1. Quyết định
-
+## 1. Stack
 SiVi dùng **Next.js full-stack + PostgreSQL + Python AI service**.
 
 - Frontend và API cùng một Next.js app.
@@ -14,8 +13,7 @@ SiVi dùng **Next.js full-stack + PostgreSQL + Python AI service**.
 - AI là service Python riêng, gọi qua HTTP.
 - Ảnh upload thật, lưu local/S3.
 - Không realtime; client refetch hoặc refresh trang.
-- Không dùng Redis/Celery ở MVP.
-- Không dùng Django.
+
 
 ## 2. Kiến trúc
 
