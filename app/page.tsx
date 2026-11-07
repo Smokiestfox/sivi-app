@@ -6,7 +6,7 @@ export default function Home() {
       <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">SiVi skeleton</p>
       <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900">Nền tảng đã sẵn sàng để phát triển.</h1>
       <p className="mt-4 max-w-2xl text-slate-600">
-        Đây là skeleton kiến trúc v3: Next.js full-stack, PostgreSQL, Drizzle ORM và Python AI service.
+        Đây là skeleton Next.js full-stack, PostgreSQL, Drizzle ORM và Python AI service.
         UI từ branch an sẽ được port dần vào components/.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
@@ -20,7 +20,7 @@ export default function Home() {
       <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
         <p className="font-semibold text-slate-900">Bước tiếp theo</p>
         <ol className="mt-3 list-decimal space-y-2 pl-5">
-          <li>Chạy PostgreSQL bằng docker compose.</li>
+          <li>Chạy PostgreSQL và AI bằng Docker Compose.</li>
           <li>Generate và migrate schema Drizzle.</li>
           <li>Port UI từ sivi-app/components.</li>
           <li>Nối auth, upload và AI service.</li>

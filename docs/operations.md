@@ -1,21 +1,21 @@
 # Vận hành & triển khai SiVi
 
-**Trạng thái:** chưa chốt  
-**Mô hình:** VPS + Next.js + PostgreSQL + Python AI service.
+**Mô hình demo:** PostgreSQL và AI trong Docker Compose; Next.js chạy trên máy host.
 
 ## 1. Môi trường
 
-| Môi trường | Web | Database | AI | Storage |
-|---|---|---|---|---|
-| Local | npm run dev | Docker Postgres | Docker AI | storage/ |
-| Staging | Next start | Postgres VPS | AI container | storage/ |
-| Production | Next start | Postgres VPS | AI container | S3/MinIO |
+| Thành phần | Cách chạy |
+|---|---|
+| Next.js | `npm run dev` trên máy host |
+| PostgreSQL | Docker Compose, cổng 5432 |
+| AI | Docker Compose, cổng 8100 |
+| Ảnh | Thư mục `storage/` trên máy host |
 
 ## 2. Biến môi trường
 
 | Biến | Bắt buộc | Mô tả |
 |---|---|---|
-| APP_URL | Có | URL gốc, dùng cho OAuth callback, cookie, Origin |
+| APP_URL | Có | `http://localhost:3000`, dùng cho OAuth callback, cookie, Origin |
 | DATABASE_URL | Có | Chuỗi kết nối PostgreSQL |
 | GOOGLE_CLIENT_ID | Có | OAuth client |
 | GOOGLE_CLIENT_SECRET | Có | OAuth secret |
@@ -28,12 +28,13 @@
 | MAX_UPLOAD_BYTES | Không | Mặc định 5 MB |
 
 Không commit .env. .env.example chỉ chứa giá trị mẫu.
+Trong Google Cloud Console, đăng ký redirect URI `http://localhost:3000/api/auth/google/callback` khi chạy local.
 
 ## 3. Local
 
-~~~bash
-cp .env.example .env
-docker compose up -d postgres ai
+~~~powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d
 npm ci
 npm run db:migrate
 npm run dev
@@ -46,84 +47,13 @@ curl http://127.0.0.1:3000/api/health
 curl http://127.0.0.1:8100/health
 ~~~
 
-## 4. Production trên VPS
-
-Topology:
-
-~~~text
-Internet
-  │ HTTPS
-  ▼
-Caddy / Nginx
-  ├── Next.js :3000
-  ├── PostgreSQL :5432 (nội bộ)
-  ├── AI service :8100 (nội bộ)
-  └── storage/ hoặc S3
-~~~
-
-- Caddy/Nginx làm TLS và reverse proxy.
-- Next.js chạy bằng systemd hoặc PM2.
-- PostgreSQL và AI service chạy bằng Docker Compose.
-- Không mở PostgreSQL/AI ra Internet.
-
-### 4.1. Deploy web
-
-~~~bash
-git pull
-npm ci
-npm run db:migrate
-npm run build
-sudo systemctl restart sivi-web
-~~~
-
-Unit systemd:
-
-~~~ini
-[Unit]
-Description=SiVi Next.js
-After=network.target
-
-[Service]
-WorkingDirectory=/srv/sivi
-EnvironmentFile=/srv/sivi/.env
-ExecStart=/usr/bin/npm run start
-Restart=always
-User=sivi
-
-[Install]
-WantedBy=multi-user.target
-~~~
-
-### 4.2. Caddy
-
-~~~text
-sivi.example.com {
-  encode gzip
-  reverse_proxy 127.0.0.1:3000
-}
-~~~
-
-## 5. Database
+## 4. Database
 
 - PostgreSQL 17.
-- Migration bằng drizzle-kit, không sửa tay schema production.
-- Trước migration: backup.
-- Migration phải idempotent hoặc có rollback plan.
+- Migration bằng drizzle-kit; mọi thay đổi schema đi kèm migration.
 - Không chạy migration tự động trong request.
 
-Backup:
-
-~~~bash
-pg_dump "$DATABASE_URL" -Fc -f sivi-$(date +%F).dump
-~~~
-
-Restore:
-
-~~~bash
-pg_restore --clean --if-exists -d "$DATABASE_URL" sivi-YYYY-MM-DD.dump
-~~~
-
-## 6. AI service
+## 5. AI service
 
 - Chạy container FastAPI, cổng nội bộ 8100.
 - Health: GET /health.
@@ -133,27 +63,25 @@ pg_restore --clean --if-exists -d "$DATABASE_URL" sivi-YYYY-MM-DD.dump
 - Log request id, model version, latency, kết quả policy.
 - Không log toàn bộ nội dung người dùng ở production.
 
-## 7. Ảnh
+## 6. Ảnh
 
-- Local: STORAGE_DIR, volume persistent.
-- Production: S3/MinIO.
+- Dùng `STORAGE_DIR` (mặc định `./storage`).
 - Tên file UUID, không dùng tên gốc.
 - Resize tối đa 1600px, strip EXIF.
 - Chỉ JPEG/PNG/WebP, tối đa 5 MB.
 - Xóa file khi xóa bài hoặc bỏ ảnh.
-- Backup bucket/volume theo lịch.
 
-## 8. Session & rate limit
+## 7. Session & rate limit
 
 - Session lưu DB, token hash, hết hạn 30 ngày.
-- Cron xóa session hết hạn mỗi ngày.
+- Xóa session hết hạn theo tác vụ bảo trì thủ công; không cần thêm cron/job queue cho demo.
 - Rate limit:
   - OTP: 60 giây/user, 60 giây/email.
   - Post/comment: 10 request/5 phút/user.
   - Report: 20 request/giờ/user.
-- Rate limit lưu Redis hoặc bảng DB; MVP dùng bảng DB nếu chưa có Redis.
+- Không thêm Redis; giới hạn OTP được thực hiện trong ứng dụng và DB.
 
-## 9. Logging & health
+## 8. Logging & health
 
 - Request id cho mỗi request.
 - Log JSON: level, requestId, userId, route, status, latency.
@@ -164,27 +92,6 @@ pg_restore --clean --if-exists -d "$DATABASE_URL" sivi-YYYY-MM-DD.dump
   - AI /health: model sẵn sàng.
 - Cảnh báo khi 5xx tăng hoặc AI timeout tăng.
 
-## 10. Security headers
+## 9. Mở rộng sau demo
 
-Caddy/Nginx hoặc Next headers:
-
-- Content-Security-Policy.
-- Strict-Transport-Security.
-- X-Content-Type-Options: nosniff.
-- Referrer-Policy: strict-origin-when-cross-origin.
-- X-Frame-Options: DENY.
-- Permissions-Policy tối thiểu.
-
-## 11. Rollback
-
-1. Giữ build trước đó.
-2. Nếu lỗi app: symlink hoặc service về build cũ.
-3. Nếu lỗi migration: restore backup, không rollback schema bằng tay.
-4. Ghi incident note.
-
-## 12. Vấn đề mở
-
-1. Chốt dùng systemd hay PM2.
-2. Chốt S3 hay MinIO cho production.
-3. Có cần web container trong Docker Compose không, hay giữ Next start trên host.
-4. Chốt nhà cung cấp VPS và cấu hình CPU/RAM cho Laya.
+Chỉ nếu giảng viên yêu cầu truy cập online, bổ sung VPS, HTTPS/reverse proxy, backup DB và lưu trữ bền vững. Không cần triển khai các thành phần này để phát triển hoặc demo local.

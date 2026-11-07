@@ -2,30 +2,30 @@
 
 **Mục tiêu:** chọn ít diagram nhưng mỗi cái trả lời đúng một câu hỏi, dễ review trong PR và dễ trình bày với giảng viên.
 
-## 1. Bộ diagram 
+## 1. Bộ diagram
 
-| Ưu tiên | Diagram | Trả lời câu hỏi | Đối tượng |
-|---:|---|---|---|
-| 1 | System Context | Ai dùng, hệ thống nối với dịch vụ nào? | Giảng viên, người mới |
-| 2 | Container | Có những runtime/container nào? | Cả nhóm |
-| 3 | Component | Bên trong Next.js có module gì? | Dev |
-| 4 | ERD core | Dữ liệu chính liên kết thế nào? | Dev, DB |
-| 5 | Sequence: đăng bài + AI | Một bài đi qua những bước nào? | Dev, QA |
-| 6 | Sequence: admin xử lý báo cáo | Gỡ bài/bình luận diễn ra thế nào? | Dev, Admin |
-| 7 | Deployment | Chạy ở đâu, container nào? | Infra, báo cáo |
-| 8 | State: bài đăng | Trạng thái bài thay đổi ra sao? | Dev, QA |
+| Ưu tiên | Diagram                           | Trả lời câu hỏi                            | Đối tượng              |
+| --------: | --------------------------------- | ---------------------------------------------- | -------------------------- |
+|         1 | System Context                    | Ai dùng, hệ thống nối với dịch vụ nào? | Giảng viên, người mới |
+|         2 | Container                         | Có những runtime/container nào?             | Cả nhóm                  |
+|         3 | Component                         | Bên trong Next.js có module gì?             | Dev                        |
+|         4 | ERD core                          | Dữ liệu chính liên kết thế nào?         | Dev, DB                    |
+|         5 | Sequence: đăng bài + AI        | Một bài đi qua những bước nào?          | Dev, QA                    |
+|         6 | Sequence: admin xử lý báo cáo | Gỡ bài/bình luận diễn ra thế nào?       | Dev, Admin                 |
+|         7 | Deployment                        | Chạy ở đâu, container nào?                | Infra, báo cáo           |
+|         8 | State: bài đăng                | Trạng thái bài thay đổi ra sao?           | Dev, QA                    |
 
 Không nên vẽ một ERD 20 bảng thật to rồi cố nhồi mọi thứ vào. Hãy tách:
 
 - ERD lõi forum: users, posts, roommate_posts, review_posts, comments, votes.
 - ERD auth/trường: universities, university_domains, users, verification_requests, sessions.
-- ERD kiểm duyệt/báo cáo: reports, moderation_logs, notifications.
+- ERD kiểm duyệt/báo cáo: reports, moderation_logs.
 
 ## 2. System Context
 
 Dùng khi giới thiệu tổng quan, không đi vào công nghệ.
 
-~~~mermaid
+```mermaid
 flowchart LR
     SV["Sinh viên"] -->|HTTPS| SIVI["SiVi"]
     ADMIN["Quản trị viên"] -->|HTTPS| SIVI
@@ -34,7 +34,7 @@ flowchart LR
     SIVI -->|SMTP| MAIL["Email trường"]
     SIVI -->|HTTP| AI["AI moderation service"]
     SIVI -->|SQL| DB[("PostgreSQL")]
-~~~
+```
 
 **Cách đọc:** người dùng đi vào SiVi; SiVi phụ thuộc Google, email, AI và database.
 
@@ -42,43 +42,46 @@ flowchart LR
 
 Đây là diagram quan trọng nhất, dùng làm “một trang kiến trúc”.
 
-~~~mermaid
+```mermaid
 flowchart TB
     subgraph CLIENT["Trình duyệt"]
         UI["Next.js UI<br/>React + Ant Design"]
     end
 
-    subgraph APP["Next.js server"]
-        API["Route handlers<br/>/api/v1"]
-        SERVICE["server/ services<br/>auth, posts, comments, reports"]
+    subgraph APP["Next.js app"]
+        PAGE["Server Components"]
+        ROUTES["Route handlers<br/>ghi, OAuth callback, upload"]
+        SERVICE["server/ services<br/>Drizzle + nghiệp vụ"]
     end
 
     DB[("PostgreSQL")]
-    STORAGE[("Storage / S3<br/>ảnh")]
+    STORAGE[("storage/<br/>ảnh local")]
     AI["Python FastAPI<br/>Laya"]
     GOOGLE["Google OAuth"]
     SMTP["SMTP"]
 
-    UI -->|HTTPS JSON| API
-    API --> SERVICE
+    UI --> PAGE
+    UI -->|mutations| ROUTES
+    PAGE --> SERVICE
+    ROUTES --> SERVICE
     SERVICE -->|SQL| DB
-    SERVICE -->|S3 API| STORAGE
+    SERVICE -->|file system| STORAGE
     SERVICE -->|HTTP| AI
     SERVICE -->|OAuth| GOOGLE
     SERVICE -->|SMTP| SMTP
-~~~
+```
 
-**Cách đọc:** UI không nói chuyện trực tiếp với DB hay AI; mọi thứ đi qua API/service.
+**Cách đọc:** trang đọc qua Server Components và service; route handlers chỉ phục vụ ghi, OAuth, upload.
 
 ## 4. Component trong Next.js
 
 Dùng khi chia việc hoặc review code.
 
-~~~mermaid
+```mermaid
 flowchart LR
-    API["API controllers"]
+    APP["Server Components + route handlers"]
 
-    subgraph DOMAIN["Domain services"]
+    subgraph DOMAIN["Module services"]
         AUTH["Auth + OTP"]
         POSTS["Posts"]
         COMMENTS["Comments"]
@@ -95,13 +98,13 @@ flowchart LR
         MAIL["SMTP"]
     end
 
-    API --> AUTH
-    API --> POSTS
-    API --> COMMENTS
-    API --> VOTES
-    API --> REPORTS
-    API --> UPLOADS
-    API --> MOD
+    APP --> AUTH
+    APP --> POSTS
+    APP --> COMMENTS
+    APP --> VOTES
+    APP --> REPORTS
+    APP --> UPLOADS
+    APP --> MOD
 
     AUTH --> DB
     AUTH --> MAIL
@@ -113,7 +116,7 @@ flowchart LR
     UPLOADS --> DB
     MOD --> AI
     MOD --> DB
-~~~
+```
 
 **Cách đọc:** controller chỉ điều phối; service chứa nghiệp vụ; infra là DB, storage, AI, mail.
 
@@ -121,7 +124,7 @@ flowchart LR
 
 Chỉ vẽ phần lõi trước; các bảng auth để diagram riêng.
 
-~~~mermaid
+```mermaid
 erDiagram
     users ||--o{ posts : writes
     posts ||--o| roommate_posts : roommate
@@ -131,114 +134,107 @@ erDiagram
     posts ||--o{ votes : receives
     users ||--o{ votes : casts
     posts ||--o{ post_images : has
-    posts ||--o{ post_tags : tagged
-~~~
+```
 
-**Cách đọc:** một user viết nhiều bài; mỗi bài là roommate hoặc review; bài có comment, vote, ảnh, tag.
+**Cách đọc:** một user viết nhiều bài; mỗi bài là roommate hoặc review; bài có comment, vote và ảnh.
 
 ## 6. Sequence: đăng bài kèm AI
 
-~~~mermaid
+```mermaid
 sequenceDiagram
     actor SV as Sinh viên
     participant UI as Next.js UI
-    participant API as API
+    participant APP as Next.js
     participant MOD as Moderation service
     participant AI as Python AI
     participant DB as PostgreSQL
 
-    SV->>UI: Chọn ảnh + nhập bài
-    UI->>API: POST /posts (multipart: payload + images)
-    API->>API: Auth + Zod validate + sharp
-    API->>MOD: moderate(toàn bộ text)
-    MOD->>AI: POST /v1/moderate
-    AI-->>MOD: tags + scores
+    SV->>UI: Chọn ảnh và nhập bài
+    UI->>APP: Gửi nội dung và ảnh
+    APP->>APP: Kiểm tra quyền, Zod và ảnh bằng sharp
+    APP->>MOD: Kiểm duyệt toàn bộ văn bản
+    MOD->>AI: Gửi văn bản cần kiểm duyệt
 
-    alt Nội dung đạt
-        MOD-->>API: approved
-        API->>DB: insert post + images + moderation_log
-        API-->>UI: 201 Created
-    else Nội dung vi phạm
-        MOD-->>API: rejected
-        API->>API: xóa file tạm
-        API-->>UI: 422 Unprocessable
-    else AI lỗi hoặc timeout
-        MOD-->>API: unavailable
-        API->>API: xóa file tạm
-        API-->>UI: 503 Service Unavailable
+    alt AI lỗi hoặc timeout
+        AI-->>MOD: Lỗi hoặc hết thời gian chờ
+        MOD-->>APP: Không có kết quả hợp lệ
+        APP-->>UI: Báo lỗi, không lưu bài
+    else AI trả kết quả
+        AI-->>MOD: Tags và điểm
+        MOD-->>APP: Kết quả kiểm duyệt
+        alt Nội dung đạt
+            APP->>DB: Lưu bài ACTIVE, ảnh và moderation_log
+            DB-->>APP: Đã lưu
+            APP-->>UI: Thành công, làm mới trang
+        else Nội dung vi phạm
+            APP-->>UI: Báo vi phạm, không lưu bài
+        end
     end
-~~~
+```
 
-**Cách đọc:** ảnh đi cùng request tạo bài; bài chỉ được lưu khi AI đạt; lỗi AI thì fail closed và file tạm bị xóa.
+**Cách đọc:** ảnh đi cùng thao tác tạo bài; chỉ nội dung được chấp nhận mới tạo bài; lỗi AI thì fail closed.
 
 ## 7. Sequence: admin xử lý báo cáo
 
-~~~mermaid
+```mermaid
 sequenceDiagram
     actor AD as Admin
     participant UI as Admin Dashboard
-    participant API as API
+    participant SERVER as Next.js service
     participant DB as PostgreSQL
 
     AD->>UI: Mở báo cáo pending
-    UI->>API: GET /admin/reports
-    API->>DB: select pending + target
-    API-->>UI: danh sách báo cáo
+    UI->>SERVER: đọc báo cáo
+    SERVER->>DB: select pending + target
+    SERVER-->>UI: danh sách báo cáo
 
     AD->>UI: Chọn Gỡ bài
-    UI->>API: POST /admin/reports/{id}/resolve
-    API->>DB: BEGIN
-    API->>DB: lock report + target
-    API->>DB: update target hidden
-    API->>DB: update tất cả report cùng target
-    API->>DB: insert notification
-    API->>DB: COMMIT
-    API-->>UI: 200 OK
-~~~
+    UI->>SERVER: xử lý báo cáo
+    SERVER->>DB: BEGIN, lock report + target
+    SERVER->>DB: update target hidden + reports
+    SERVER->>DB: COMMIT
+    SERVER-->>UI: cập nhật xong, router.refresh()
+```
 
 **Cách đọc:** một quyết định áp dụng cho toàn bộ báo cáo của cùng nội dung, không chỉ báo cáo đang chọn.
 
 ## 8. Deployment
 
-~~~mermaid
+```mermaid
 flowchart TB
-    USER["Người dùng"] -->|HTTPS| PROXY["Caddy / Nginx"]
-    PROXY --> WEB["Next.js app"]
-    WEB --> DB[("PostgreSQL")]
-    WEB --> STORAGE[("MinIO / S3")]
-    WEB --> AI["FastAPI + Laya"]
+    USER["Trình duyệt"] -->|localhost:3000| WEB["Next.js trên máy host"]
+    WEB -->|5432| DB[("PostgreSQL trong Compose")]
+    WEB -->|8100| AI["FastAPI trong Compose"]
+    WEB -->|đọc/ghi file| STORAGE[("storage/ trên host")]
     AI --> MODEL[("Model files")]
-    WEB --> SMTP["SMTP"]
-~~~
+```
 
-**Cách đọc:** một entrypoint HTTPS; Next.js là web chính; AI và storage là service phụ.
+**Cách đọc:** Compose chỉ chạy PostgreSQL và AI; Next.js chạy trực tiếp trên máy phát triển.
 
 ## 9. State: bài đăng
 
-~~~mermaid
+```mermaid
 stateDiagram-v2
     [*] --> ACTIVE: AI pass
-    [*] --> REJECTED: AI reject
     ACTIVE --> HIDDEN: Admin gỡ
     HIDDEN --> [*]
-    REJECTED --> [*]
-~~~
+```
 
 ## 10. Công cụ
 
-| Mục đích | Công cụ | Lý do |
-|---|---|---|
-| Lưu trong repo, review PR | Mermaid | Render trực tiếp trên GitHub, sửa bằng text |
-| ERD chi tiết | DBML + dbdiagram.io | Dễ đọc, export PNG/SVG |
-| Báo cáo đẹp | draw.io / diagrams.net | Chỉnh layout, màu, export |
-| Thảo luận nhanh | Excalidraw | Vẽ tay, không cần chuẩn |
-| C4 chuyên sâu | Structurizr / C4-PlantUML | Khi cần nhiều level; hơi nặng cho nhóm 5 người |
+| Mục đích                | Công cụ                 | Lý do                                                |
+| -------------------------- | ------------------------- | ----------------------------------------------------- |
+| Lưu trong repo, review PR | Mermaid                   | Render trực tiếp trên GitHub, sửa bằng text      |
+| ERD chi tiết              | DBML + dbdiagram.io       | Dễ đọc, export PNG/SVG                             |
+| Báo cáo đẹp            | draw.io / diagrams.net    | Chỉnh layout, màu, export                           |
+| Thảo luận nhanh          | Excalidraw                | Vẽ tay, không cần chuẩn                           |
+| C4 chuyên sâu            | Structurizr / C4-PlantUML | Khi cần nhiều level; hơi nặng cho nhóm 5 người |
 
 ## 11. Nguyên tắc để diagram dễ đọc
 
 1. Mỗi diagram chỉ trả lời một câu hỏi.
 2. Tối đa 7–9 box chính; chi tiết đẩy xuống diagram khác.
-3. Ghi rõ protocol: HTTPS, SQL, SMTP, S3.
+3. Ghi rõ protocol khi cần.
 4. Dùng cùng một tên cho module trong code và diagram.
 5. Đừng trộn deployment với business flow.
 6. ERD lớn phải tách theo domain.
