@@ -1,6 +1,6 @@
 # Vận hành & triển khai SiVi
 
-**Trạng thái:** đã chốt  
+**Trạng thái:** chưa chốt  
 **Mô hình:** VPS + Next.js + PostgreSQL + Python AI service.
 
 ## 1. Môi trường
