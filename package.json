@@ -2,7 +2,9 @@
   "name": "sivi-app",
   "version": "0.1.0",
   "private": true,
-  "engines": { "node": ">=20.9" },
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,6 +16,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.107.1",
     "antd": "^6.6.7",
     "dotenv": "^17.0.0",
     "drizzle-orm": "^0.44.0",

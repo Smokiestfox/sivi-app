@@ -1,8 +1,10 @@
 # server/uploads
 
-Sẽ chứa:
+Xử lý ảnh trong request tạo/sửa bài, không có endpoint upload rời.
 
-- nhận multipart, kiểm tra magic bytes/MIME/size.
+- Nhận file từ multipart của POST/PATCH bài.
+- Kiểm tra magic bytes, MIME, size.
 - sharp resize + strip EXIF.
-- lưu storage hoặc S3.
-- trả image id để gắn vào bài.
+- Lưu storage hoặc S3.
+- Ghi post_images trong cùng transaction với bài.
+- Nếu transaction lỗi, xóa file vừa ghi.

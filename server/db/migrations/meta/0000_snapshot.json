@@ -1,5 +1,5 @@
 {
-  "id": "45efd487-0d94-4c28-9b7b-4cf32d474bf1",
+  "id": "325c9cb2-13a6-40d8-8019-eff82bfdd4e3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1983,11 +1983,7 @@
       "name": "post_status",
       "schema": "public",
       "values": [
-        "draft",
-        "processing",
         "active",
-        "pending_review",
-        "rejected",
         "hidden"
       ]
     },

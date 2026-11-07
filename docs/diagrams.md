@@ -148,11 +148,8 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     SV->>UI: Chọn ảnh + nhập bài
-    UI->>API: POST /uploads
-    API-->>UI: image_id
-
-    UI->>API: POST /posts
-    API->>API: Auth + Zod validate
+    UI->>API: POST /posts (multipart: payload + images)
+    API->>API: Auth + Zod validate + sharp
     API->>MOD: moderate(toàn bộ text)
     MOD->>AI: POST /v1/moderate
     AI-->>MOD: tags + scores
@@ -163,14 +160,16 @@ sequenceDiagram
         API-->>UI: 201 Created
     else Nội dung vi phạm
         MOD-->>API: rejected
+        API->>API: xóa file tạm
         API-->>UI: 422 Unprocessable
     else AI lỗi hoặc timeout
         MOD-->>API: unavailable
+        API->>API: xóa file tạm
         API-->>UI: 503 Service Unavailable
     end
 ~~~
 
-**Cách đọc:** ảnh upload trước; bài chỉ được lưu khi AI đạt; lỗi AI thì fail closed.
+**Cách đọc:** ảnh đi cùng request tạo bài; bài chỉ được lưu khi AI đạt; lỗi AI thì fail closed và file tạm bị xóa.
 
 ## 7. Sequence: admin xử lý báo cáo
 

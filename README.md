@@ -17,7 +17,7 @@ app/                 # page + API route handler
 components/          # UI, port dần từ branch an
 server/              # business logic, Drizzle, auth, upload
 ai-service/          # FastAPI + Laya
-docs/                # architecture, data model, diagrams
+docs/                # architecture, data model, diagrams, API, ops, test
 storage/             # ảnh local khi dev
 tests/               # test sẽ thêm
 ~~~
@@ -27,8 +27,7 @@ tests/               # test sẽ thêm
 ~~~bash
 cp .env.example .env
 docker compose up -d postgres ai
-npm install
-npm run db:generate
+npm ci
 npm run db:migrate
 npm run dev
 ~~~
@@ -58,6 +57,9 @@ npm run build
 - [Kiến trúc](docs/architecture.md)
 - [Data model](docs/data-model.md)
 - [Diagram](docs/diagrams.md)
+- [API contract](docs/api.md)
+- [Vận hành](docs/operations.md)
+- [Test plan](docs/testing.md)
 
 ## Trạng thái skeleton
 

@@ -140,11 +140,11 @@ Partial unique: một pending/user, một pending/email.
 | content | text | 1..5000 |
 | address | varchar(300) | NULL |
 | google_maps_url | text | NULL |
-| status | enum | draft, processing, active, pending_review, rejected, hidden |
+| status | enum | active, hidden |
 | created_at | timestamptz | NOT NULL |
 | updated_at | timestamptz | NOT NULL |
 
-content tương ứng Mô tả; address tương ứng Địa chỉ; status mở rộng cho AI async.
+content tương ứng Mô tả; address tương ứng Địa chỉ; status chỉ có active/hidden vì AI chạy đồng bộ.
 
 ### roommate_posts
 

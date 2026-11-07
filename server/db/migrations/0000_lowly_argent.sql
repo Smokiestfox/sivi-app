@@ -5,7 +5,7 @@ CREATE TYPE "public"."gender_preference" AS ENUM('male', 'female', 'any');--> st
 CREATE TYPE "public"."moderation_result" AS ENUM('approved', 'pending_review', 'rejected');--> statement-breakpoint
 CREATE TYPE "public"."notification_type" AS ENUM('info', 'warning', 'success', 'error');--> statement-breakpoint
 CREATE TYPE "public"."place_type" AS ENUM('cafe', 'restaurant', 'street_food', 'photo', 'other');--> statement-breakpoint
-CREATE TYPE "public"."post_status" AS ENUM('draft', 'processing', 'active', 'pending_review', 'rejected', 'hidden');--> statement-breakpoint
+CREATE TYPE "public"."post_status" AS ENUM('active', 'hidden');--> statement-breakpoint
 CREATE TYPE "public"."post_type" AS ENUM('roommate', 'review');--> statement-breakpoint
 CREATE TYPE "public"."price_range" AS ENUM('low', 'medium', 'high');--> statement-breakpoint
 CREATE TYPE "public"."report_reason" AS ENUM('spam', 'abuse', 'misinformation', 'other');--> statement-breakpoint

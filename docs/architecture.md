@@ -61,7 +61,9 @@ Next.js xử lý web, auth, CRUD, upload và admin. Python chỉ chạy model AI
 | Upload | local storage/S3 + sharp | Ảnh thật, validate MIME/size |
 | Test | Vitest, Playwright, pytest | Unit, E2E, AI |
 | CI | GitHub Actions | lint, typecheck, test, build |
-| Deploy | Docker Compose | web, postgres, ai |
+
+Hợp đồng API: **api.md**. Vận hành: **operations.md**. Test: **testing.md**.
+| Deploy | VPS + Docker Compose | Next.js chạy trên host; PostgreSQL/AI trong compose |
 
 ## 5. Cấu trúc repo
 
@@ -152,7 +154,6 @@ Base path: /api/v1.
 | Comments | GET /posts/{id}/comments, POST /posts/{id}/comments, PATCH /comments/{id}, DELETE /comments/{id} |
 | Votes | POST /posts/{id}/vote |
 | Reports | POST /reports |
-| Uploads | POST /uploads, DELETE /uploads/{id} |
 | Profile | GET /me, GET /me/posts, GET /me/comments |
 | Admin | GET /admin/reports?status=, POST /admin/reports/{id}/resolve |
 
@@ -201,13 +202,15 @@ Không chỉ gửi title + content.
 
 ## 11. Upload ảnh
 
-1. Client chọn ảnh.
-2. POST /api/v1/uploads dạng multipart.
-3. Server kiểm tra MIME thật, size, số lượng.
-4. sharp resize/strip EXIF.
-5. Lưu storage/uploads/{uuid}.webp hoặc S3.
-6. Trả image id + URL.
-7. Khi tạo bài, gửi image id; server ghi post_images.
+Ảnh gửi cùng request tạo/sửa bài, không có endpoint upload rời.
+
+1. Client tạo FormData: payload JSON + images.
+2. Gửi POST /posts hoặc PATCH /posts/{id}.
+3. Server đọc formData, validate payload, kiểm tra magic bytes và size.
+4. sharp resize/strip EXIF, ghi storage.
+5. Transaction: insert/update post, post_images, moderation_log.
+6. Nếu transaction lỗi, xóa file vừa ghi.
+7. Khi sửa, client gửi keepImageIds; ảnh bỏ thì xóa row và file.
 
 Giới hạn:
 
