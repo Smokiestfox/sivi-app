@@ -1,0 +1,32 @@
+# dependencies
+/node_modules
+
+# next
+/.next/
+/out/
+/build
+
+# env
+.env*
+!.env.example
+
+# local storage
+/storage/*
+!/storage/README.md
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# tests
+/coverage
+/playwright-report
+/test-results
+
+# misc
+.DS_Store
+*.tsbuildinfo
