@@ -1,21 +1,21 @@
 # Data model SiVi v2 — đối chiếu EERD & class diagram
 
-**Trạng thái:** đề xuất điều chỉnh  
+**Trạng thái:** đã chốt  
 **Mục tiêu:** giữ 14 thực thể cốt lõi, bổ sung phần còn thiếu, chốt các điểm lệch giữa class diagram và database.  
 **Stack áp dụng:** Next.js full-stack + PostgreSQL; không phụ thuộc Django.
 
 ## 1. Kết luận
 
-**Chưa tuân thủ 100%** nếu giữ nguyên EERD/class diagram cũ. Nhưng có thể tuân thủ ở mức logic nếu chấp nhận 6 điều chỉnh:
+Data model đã chốt với 14 thực thể cốt lõi và 6 điều chỉnh so với bản cũ:
 
 1. Dùng khóa chính bigint thay cho int.
 2. Chuyển OTP từ Người dùng sang Yêu cầu xác thực.
 3. Tách Trường và Tên miền trường thành 2 bảng.
 4. Giữ Bài đăng là bảng cha; Bài tìm roommate/Bài review là bảng con one-to-one.
 5. Thêm Nhật ký kiểm duyệt và Ảnh bài đăng thành bảng riêng.
-6. Thêm các bảng extension: post_tags, notifications, sessions; moderation_jobs chỉ dùng nếu AI chạy async.
+6. Thêm các bảng extension: post_tags, notifications, sessions.
 
-Sau đó, mô hình khớp 14 thực thể cốt lõi; các bảng extension được ghi rõ.
+Mô hình khớp 14 thực thể cốt lõi; các bảng extension được ghi rõ.
 
 ## 2. 14 bảng cốt lõi
 
@@ -41,7 +41,6 @@ Sau đó, mô hình khớp 14 thực thể cốt lõi; các bảng extension đ�
 - post_tags: tag chuẩn hóa để filter.
 - notifications: thông báo trong app.
 - sessions: session do backend quản lý, không phải bảng nghiệp vụ.
-- moderation_jobs: chỉ dùng nếu chuyển AI sang async; MVP sync có thể bỏ.
 
 ## 3. Cột và ràng buộc chính
 
@@ -263,22 +262,6 @@ UNIQUE: (reporter_id, post_id) và (reporter_id, comment_id), có điều kiện
 
 CHECK: đúng một trong post_id/comment_id. Append-only.
 
-### moderation_jobs — chỉ dùng khi AI async
-
-| Cột | Kiểu | Ràng buộc |
-|---|---|---|
-| id | bigint | PK |
-| post_id | bigint | FK posts, NULL |
-| comment_id | bigint | FK comments, NULL |
-| revision | integer | NOT NULL |
-| status | enum | queued, processing, done, failed |
-| attempts | smallint | default 0 |
-| error | text | NULL |
-| idempotency_key | varchar(100) | UNIQUE |
-| created_at | timestamptz | NOT NULL |
-| started_at | timestamptz | NULL |
-| finished_at | timestamptz | NULL |
-
 ### post_tags
 
 | Cột | Kiểu | Ràng buộc |
@@ -348,7 +331,7 @@ Bổ sung post_id, alt_text, UNIQUE(post_id, sort_order).
 
 ### 4.8. ID type
 
-Class cũ ghi int. Đề xuất bigint cho tất cả PK/FK; cập nhật class diagram int -> bigint.
+Class cũ ghi int. Chốt dùng bigint cho tất cả PK/FK; cập nhật class diagram int -> bigint.
 
 ## 5. Mapping EERD cũ → bảng mới
 
@@ -390,25 +373,19 @@ erDiagram
     users ||--o{ reports : reports
     posts ||--o{ moderation_logs : scanned_post
     comments ||--o{ moderation_logs : scanned_comment
-    posts ||--o{ moderation_jobs : queued
     posts ||--o{ post_tags : tagged
     users ||--o{ notifications : receives
 ~~~
 
-## 7. Điểm cần chốt
+## 7. Vấn đề mở
 
-1. **bigint hay UUID?** Đề xuất bigint để gần class diagram int.
-2. **OTP ở User hay VerificationRequest?** Đề xuất VerificationRequest.
-3. **Tag dùng bảng post_tags hay JSONB?** Đề xuất bảng để filter.
-4. **Có cần moderation_jobs không?** MVP sync: không. Chỉ thêm khi chuyển AI sang async.
-5. **Có cần notifications không?** Có, vì admin gỡ bài cần thông báo.
-6. **Có giữ contact_info trên bài không?** UI đang có; nếu bỏ, dùng contact của User.
+1. **Lưu trữ ảnh production:** chốt S3 hay MinIO, thời hạn giữ file và backup.
+2. **Audit nội dung bị AI từ chối:** hiện không lưu nội dung bị từ chối; nếu cần khiếu nại thì phải bổ sung bảng log riêng.
+3. **Bộ dữ liệu demo:** chốt seed data cho buổi bảo vệ.
 
 ## 8. Kết luận
 
-Nếu chốt 6 điều chỉnh trên:
-
-- 14 thực thể cốt lõi vẫn giữ.
-- Class diagram chỉ cần sửa OTP, Bình chọn, Báo cáo, Nhật ký, Ảnh, ID type.
-- Database có thêm các bảng extension được ghi rõ (post_tags, notifications, sessions; moderation_jobs tùy chọn), không làm mất mô hình gốc.
-- Có thể nói: tuân thủ EERD/class diagram ở mức logic, có điều chỉnh được ghi nhận, thay vì khớp 100% từng cột.
+- 14 thực thể cốt lõi giữ nguyên.
+- Class diagram đã sửa OTP, Bình chọn, Báo cáo, Nhật ký, Ảnh, ID type.
+- Database có thêm post_tags, notifications, sessions; không có moderation_jobs.
+- Mô hình tuân thủ EERD/class diagram ở mức logic, với các điều chỉnh đã ghi nhận.

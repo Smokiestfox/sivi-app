@@ -2,7 +2,7 @@
 
 **Mục tiêu:** chọn ít diagram nhưng mỗi cái trả lời đúng một câu hỏi, dễ review trong PR và dễ trình bày với giảng viên.
 
-## 1. Bộ diagram đề xuất
+## 1. Bộ diagram đã chốt
 
 | Ưu tiên | Diagram | Trả lời câu hỏi | Đối tượng |
 |---:|---|---|---|
@@ -40,7 +40,7 @@ flowchart LR
 
 ## 3. Container
 
-Đây là diagram quan trọng nhất, nên dùng làm “một trang kiến trúc”.
+Đây là diagram quan trọng nhất, dùng làm “một trang kiến trúc”.
 
 ~~~mermaid
 flowchart TB
@@ -225,9 +225,7 @@ stateDiagram-v2
     REJECTED --> [*]
 ~~~
 
-Nếu sau này chuyển AI async, thêm PROCESSING và PENDING_REVIEW.
-
-## 10. Nên dùng công cụ nào?
+## 10. Công cụ
 
 | Mục đích | Công cụ | Lý do |
 |---|---|---|
@@ -246,7 +244,7 @@ Nếu sau này chuyển AI async, thêm PROCESSING và PENDING_REVIEW.
 5. Đừng trộn deployment với business flow.
 6. ERD lớn phải tách theo domain.
 7. Màu chỉ để phân nhóm, không dùng quá 3 màu.
-8. Diagram trong repo nên là Mermaid/DBML; PNG chỉ để xuất báo cáo.
+8. Diagram trong repo dùng Mermaid/DBML; PNG chỉ để xuất báo cáo.
 
 ## 12. Bộ tối thiểu để trao đổi
 

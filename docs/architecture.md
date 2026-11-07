@@ -1,20 +1,21 @@
-﻿# Kiến trúc & Tech stack SiVi v3
+﻿# Kiến trúc & Tech stack SiVi
 
-**Trạng thái:** đề xuất chốt theo ràng buộc mới  
+**Trạng thái:** đã chốt  
 **Ngày:** 07/11/2026  
-**Thay đổi so với v2:** không bắt buộc Django; không cần realtime; có upload ảnh thật; ưu tiên tận dụng UI/frontend.  
+**Phạm vi:** kiến trúc web app SiVi, dùng cho skeleton và các PR tiếp theo.  
 **Bộ diagram:** xem **diagrams.md**.
 
-## 1. Kết luận
+## 1. Quyết định
 
-**Giữ Next.js full-stack, không chuyển sang Django.**
+SiVi dùng **Next.js full-stack + PostgreSQL + Python AI service**.
 
 - Frontend và API cùng một Next.js app.
-- PostgreSQL là database.
-- AI là một Python service riêng, gọi qua HTTP.
-- Ảnh upload thật, lưu local/S3, không chỉ nhập URL.
-- Không làm realtime; dùng fetch/refetch, refresh trang thấy dữ liệu mới.
-- Không cần Redis/Celery ở MVP vì AI kiểm duyệt đồng bộ.
+- PostgreSQL là database duy nhất.
+- AI là service Python riêng, gọi qua HTTP.
+- Ảnh upload thật, lưu local/S3.
+- Không realtime; client refetch hoặc refresh trang.
+- Không dùng Redis/Celery ở MVP.
+- Không dùng Django.
 
 ## 2. Kiến trúc
 
@@ -33,43 +34,34 @@ Next.js 16 (React 19)
           └── Python FastAPI AI service (Laya)
 ~~~
 
-**Một runtime chính, một AI runtime riêng.**
+Next.js xử lý web, auth, CRUD, upload và admin. Python chỉ chạy model AI.
 
-- Next.js xử lý web, auth, CRUD, upload, admin.
-- Python chỉ chạy model AI.
-- Không có Django, không có Celery, không có Redis ở giai đoạn đầu.
+## 3. Căn cứ quyết định
 
-## 3. Vì sao không chọn Django
+- Giảng viên cho backend tự do; Django không bắt buộc.
+- UI hiện có là Next.js/React, tận dụng gần như toàn bộ.
+- Một runtime web giảm công deploy, CORS, session và đồng bộ type.
+- AI dùng Python vì Laya và các thư viện model nằm trong hệ sinh thái Python.
+- Không realtime nên không cần WebSocket, Redis hay job queue.
 
-| Tiêu chí | Next.js full-stack | Django + React |
-|---|---|---|
-| Tận dụng UI hiện tại | Gần như toàn bộ | Phải tách frontend/backend |
-| Số runtime | 1 web + 1 AI | 1 web + 1 API + 1 AI |
-| Auth/session | Đã có code, cần refactor | Viết lại |
-| Upload ảnh | Route handler + storage | DRF + storage |
-| Thời gian | Ngắn hơn | Dài hơn 2–4 tuần |
-| Phù hợp rubric | Được, vì backend tự do | Được, nhưng nặng hơn |
-
-Giảng viên nói backend tự do, Django chỉ là gợi ý. Vì nhóm đã có UI React/Next và cần demo nhanh, **không nên đổi stack**.
-
-## 4. Tech stack chốt
+## 4. Tech stack
 
 | Lớp | Công nghệ | Ghi chú |
 |---|---|---|
-| Frontend | Next.js 16, React 19, TypeScript | Giữ UI hiện tại |
+| Frontend | Next.js 16, React 19, TypeScript | UI hiện tại |
 | UI | Tailwind CSS + Ant Design | AntD cho admin/form phức tạp |
 | Data fetching | TanStack Query | Cache, invalidate sau mutation |
-| Backend | Next.js Route Handlers | Chỉ là controller |
+| Backend | Next.js Route Handlers | Controller mỏng |
 | Business logic | server/ services | Không viết SQL trong route |
 | ORM | Drizzle ORM + drizzle-kit | Schema TypeScript, migration rõ |
 | Database | PostgreSQL 17 | 14 bảng cốt lõi |
 | Validation | Zod | Dùng chung client/server |
-| Auth | Google OAuth + OTP + session cookie | Giữ hướng hiện tại, tách service |
+| Auth | Google OAuth + OTP + session cookie | Tự quản lý session |
 | AI | Python 3.12 + FastAPI + Laya | Gọi đồng bộ, timeout 10 giây |
 | Upload | local storage/S3 + sharp | Ảnh thật, validate MIME/size |
 | Test | Vitest, Playwright, pytest | Unit, E2E, AI |
 | CI | GitHub Actions | lint, typecheck, test, build |
-| Deploy | Docker Compose | web, postgres, ai, minio tùy chọn |
+| Deploy | Docker Compose | web, postgres, ai |
 
 ## 5. Cấu trúc repo
 
@@ -109,7 +101,7 @@ sivi-app/
 └─ scripts/
 ~~~
 
-Không tạo frontend/ và backend/ riêng. Tách lớp trong cùng app là đủ.
+Không tạo frontend/ và backend/ riêng. Tách lớp trong cùng app.
 
 ## 6. Nguyên tắc backend
 
@@ -120,7 +112,7 @@ Không tạo frontend/ và backend/ riêng. Tách lớp trong cùng app là đ�
 - Mọi mutation quan trọng dùng transaction.
 - Upload ảnh là service riêng, không nhét base64 vào JSON bài viết.
 
-Ví dụ luồng tạo bài:
+Luồng tạo bài:
 
 1. Route handler đọc JSON.
 2. Zod validate.
@@ -131,25 +123,23 @@ Ví dụ luồng tạo bài:
 
 ## 7. Database
 
-Giữ 14 thực thể cốt lõi trong data-model.md.
+Data model đã chốt trong data-model.md.
 
-Điều chỉnh cho stack Next:
-
-- Không dùng django_session; dùng bảng sessions tự quản lý hoặc session của thư viện auth.
-- Không cần moderation_jobs ở MVP vì AI chạy đồng bộ.
+- 14 bảng cốt lõi.
+- post_tags, notifications, sessions là bảng extension.
+- Không có moderation_jobs ở MVP.
 - post_images lưu storage_key, mime_type, size_bytes, width, height.
-- post_tags giữ bảng riêng để filter.
-- notifications giữ.
-- moderation_logs giữ.
+- moderation_logs là append-only.
+- votes chỉ áp dụng cho bài review.
 
-Trạng thái bài cho MVP:
+Trạng thái bài:
 
 ~~~text
 ACTIVE
 HIDDEN
 ~~~
 
-Không cần DRAFT/PROCESSING/PENDING_REVIEW nếu AI chạy đồng bộ. Nếu sau này chuyển async, thêm các trạng thái đó.
+AI chạy đồng bộ nên không dùng DRAFT/PROCESSING/PENDING_REVIEW ở MVP.
 
 ## 8. API
 
@@ -170,12 +160,10 @@ Quy ước:
 
 - Phân trang limit + cursor.
 - Lỗi thống nhất: error.code, error.message, error.fields.
-- Zod schema dùng chung; có thể sinh OpenAPI sau.
+- Zod schema dùng chung.
 - Mutation trả resource hoặc trạng thái mới.
 
 ## 9. Auth
-
-Giữ hướng hiện tại nhưng tách khỏi route:
 
 - Google OAuth: state + nonce + JWKS.
 - OTP 6 số, hash Argon2/scrypt, hạn 5 phút, tối đa 5 lần.
@@ -185,11 +173,11 @@ Giữ hướng hiện tại nhưng tách khỏi route:
 - Phân quyền guest/student/admin ở server.
 - Auth context dùng chung ở frontend; logout reset toàn bộ state.
 
-Không cần Auth.js ngay. Nếu muốn giảm code auth, có thể thay sau; nhưng OTP trường vẫn phải tự viết.
+Dùng custom auth service, không dùng Auth.js ở phiên bản này.
 
 ## 10. AI moderation
 
-MVP dùng kiểm duyệt đồng bộ:
+Kiểm duyệt đồng bộ:
 
 1. Sinh viên gửi bài/bình luận.
 2. Server validate.
@@ -200,8 +188,6 @@ MVP dùng kiểm duyệt đồng bộ:
 7. Fail: trả 422, không lưu.
 8. AI lỗi/timeout: trả 503, không lưu.
 
-Không cần realtime, không cần job queue.
-
 Text gửi AI gồm:
 
 - title
@@ -211,11 +197,9 @@ Text gửi AI gồm:
 - amenities
 - contact info
 
-Không chỉ gửi title + content như code cũ.
+Không chỉ gửi title + content.
 
 ## 11. Upload ảnh
-
-Luồng:
 
 1. Client chọn ảnh.
 2. POST /api/v1/uploads dạng multipart.
@@ -225,12 +209,12 @@ Luồng:
 6. Trả image id + URL.
 7. Khi tạo bài, gửi image id; server ghi post_images.
 
-Giới hạn đề xuất:
+Giới hạn:
 
 - Tối đa 5 ảnh/bài.
 - Tối đa 5 MB/ảnh.
 - Chỉ JPEG, PNG, WebP.
-- Không tin content-type từ client; kiểm tra magic bytes.
+- Kiểm tra magic bytes, không tin content-type từ client.
 - Local dùng storage/, production dùng S3/MinIO.
 - Ảnh public nhưng URL khó đoán; không chứa thông tin nhạy cảm.
 
@@ -241,20 +225,19 @@ Giới hạn đề xuất:
 - Sau khi tạo/sửa/xóa: invalidate query.
 - Người dùng khác refresh trang sẽ thấy dữ liệu mới.
 - Admin refresh danh sách báo cáo.
-- Đơn giản, đúng yêu cầu.
 
 ## 13. Lộ trình
 
 1. Tag branch an là ui-prototype-v1.
 2. Tạo nhánh feat/arch-v3 từ an.
-3. Thêm Drizzle + schema 14 bảng + migration.
+3. Thêm Drizzle + schema + migration.
 4. Tách server/ services; route handler mỏng.
-5. Làm auth/OTP/session lại theo service.
+5. Làm auth/OTP/session.
 6. Làm upload ảnh.
 7. Làm AI service Python + gọi đồng bộ.
 8. Sửa admin xử lý cả cụm báo cáo.
 9. Test + CI.
-10. Chỉ merge khi build/lint/test pass.
+10. Merge khi build/lint/test pass.
 
 ## 14. Phân công
 
@@ -278,11 +261,10 @@ Giới hạn đề xuất:
 - CI lint + typecheck + test + build.
 - Docker Compose chạy từ clone sạch.
 
-## 16. Điểm cần chốt
+## 16. Vấn đề mở
 
-1. Drizzle hay Prisma? Đề xuất Drizzle.
-2. Custom auth hay Auth.js? Đề xuất custom auth đã tách service.
-3. Local storage hay S3? Đề xuất local cho demo, S3 cho deploy.
-4. Có cần notifications ngay không? Nên có.
-5. Có cần moderation_jobs không? Không ở MVP.
+1. **Hiệu năng Laya trên CPU:** cần benchmark thực tế trước khi chốt cấu hình VPS; nếu vượt 10 giây, phải giảm model hoặc chuyển async.
+2. **Lưu trữ ảnh production:** chốt S3 hay MinIO, thời hạn giữ file và quy trình backup.
+3. **Phạm vi port UI:** chốt thứ tự màn hình port từ branch an để không kéo dài thời gian.
+4. **Seed/demo data:** chốt bộ dữ liệu demo cho buổi bảo vệ.
 

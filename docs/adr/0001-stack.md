@@ -21,4 +21,3 @@ Giữ Next.js full-stack cho web/API, PostgreSQL cho dữ liệu, Python FastAPI
 - Không cần Django, Redis, Celery ở MVP.
 - AI kiểm duyệt đồng bộ; lỗi/timeout thì fail closed.
 - UI được port dần từ branch an.
-- Nếu sau này cần async, thêm moderation_jobs + worker.
