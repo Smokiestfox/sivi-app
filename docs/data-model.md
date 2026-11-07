@@ -1,21 +1,21 @@
 # Data model SiVi v2 — đối chiếu EERD & class diagram
 
-**Trạng thái:** chưa chốt  
-**Mục tiêu:** giữ 14 thực thể cốt lõi, bổ sung phần còn thiếu, chốt các điểm lệch giữa class diagram và database.  
+**Trạng thái:** quyết định cho MVP
+**Mục tiêu:** giữ 14 thực thể cốt lõi và bỏ các bảng không cần cho MVP.
 **Stack áp dụng:** Next.js full-stack + PostgreSQL; không phụ thuộc Django.
 
 ## 1. Kết luận
 
-Data model đã chốt với 14 thực thể cốt lõi và 6 điều chỉnh so với bản cũ:
+Data model gồm 14 bảng nghiệp vụ và một bảng session:
 
 1. Dùng khóa chính bigint thay cho int.
 2. Chuyển OTP từ Người dùng sang Yêu cầu xác thực.
 3. Tách Trường và Tên miền trường thành 2 bảng.
 4. Giữ Bài đăng là bảng cha; Bài tìm roommate/Bài review là bảng con one-to-one.
 5. Thêm Nhật ký kiểm duyệt và Ảnh bài đăng thành bảng riêng.
-6. Thêm các bảng extension: post_tags, notifications, sessions.
+6. Giữ `sessions` để quản lý session; bỏ `post_tags` và `notifications`.
 
-Mô hình khớp 14 thực thể cốt lõi; các bảng extension được ghi rõ.
+Tags và điểm AI được ghi trong `moderation_logs`; Admin xem trạng thái `needs_review` ở màn quản trị. Chủ bài xem bài `HIDDEN` trong “Bài của tôi” với nhãn “đã bị gỡ”.
 
 ## 2. 14 bảng cốt lõi
 
@@ -36,11 +36,7 @@ Mô hình khớp 14 thực thể cốt lõi; các bảng extension được ghi 
 | 13 | Báo cáo | reports | Đa hình post/comment |
 | 14 | Nhật ký kiểm duyệt | moderation_logs | Append-only |
 
-**Bảng extension:**
-
-- post_tags: tag chuẩn hóa để filter.
-- notifications: thông báo trong app.
-- sessions: session do backend quản lý, không phải bảng nghiệp vụ.
+**Bảng hỗ trợ:** `sessions` lưu session do ứng dụng quản lý.
 
 ## 3. Cột và ràng buộc chính
 
@@ -248,10 +244,11 @@ UNIQUE: (reporter_id, post_id) và (reporter_id, comment_id), có điều kiện
 | Cột | Kiểu | Ràng buộc |
 |---|---|---|
 | id | bigint | PK |
-| post_id | bigint | FK posts, NULL |
-| comment_id | bigint | FK comments, NULL |
-| content_type | enum | post, comment |
-| result | enum | approved, pending_review, rejected |
+| post_id | bigint | ID bài, NULL |
+| comment_id | bigint | ID bình luận, NULL |
+| content_type | varchar(20) | post, comment |
+| result | enum | approved, rejected |
+| needs_review | boolean | Cờ Admin xem lại; không phải trạng thái bài |
 | labels | jsonb | tag/scores |
 | violation_group | varchar(50) | NULL |
 | confidence | numeric(5,4) | NULL |
@@ -260,28 +257,7 @@ UNIQUE: (reporter_id, post_id) và (reporter_id, comment_id), có điều kiện
 | model_version | varchar(100) | NOT NULL |
 | scanned_at | timestamptz | NOT NULL |
 
-CHECK: đúng một trong post_id/comment_id. Append-only.
-
-### post_tags
-
-| Cột | Kiểu | Ràng buộc |
-|---|---|---|
-| post_id | bigint | FK posts |
-| tag | varchar(40) | NOT NULL |
-
-PK: (post_id, tag).
-
-### notifications
-
-| Cột | Kiểu | Ràng buộc |
-|---|---|---|
-| id | bigint | PK |
-| user_id | bigint | FK users |
-| title | varchar(200) | NOT NULL |
-| message | text | NOT NULL |
-| type | enum | info, warning, success, error |
-| read | boolean | default false |
-| created_at | timestamptz | NOT NULL |
+CHECK: đúng một trong post_id/comment_id. Append-only; ID là tham chiếu lịch sử, không có FK cascade khi nội dung bị xóa.
 
 ## 4. Class diagram cần sửa
 
@@ -343,7 +319,7 @@ Class cũ ghi int. Chốt dùng bigint cho tất cả PK/FK; cập nhật class 
 | Yêu cầu xác thực | verification_requests | Thêm OTP hash/expiry/attempts |
 | Quản trị viên | admin_profiles | Giữ |
 | Sinh viên | student_profiles | Giữ |
-| Bài đăng | posts | Giữ, thêm status async |
+| Bài đăng | posts | Giữ, chỉ có ACTIVE/HIDDEN |
 | Bài tìm roommate | roommate_posts | Giữ, thêm field UI |
 | Bài review | review_posts | Giữ, thêm field UI |
 | Ảnh bài đăng | post_images | Giữ |
@@ -373,19 +349,11 @@ erDiagram
     users ||--o{ reports : reports
     posts ||--o{ moderation_logs : scanned_post
     comments ||--o{ moderation_logs : scanned_comment
-    posts ||--o{ post_tags : tagged
-    users ||--o{ notifications : receives
 ~~~
 
-## 7. Vấn đề mở
-
-1. **Lưu trữ ảnh production:** chốt S3 hay MinIO, thời hạn giữ file và backup.
-2. **Audit nội dung bị AI từ chối:** hiện không lưu nội dung bị từ chối; nếu cần khiếu nại thì phải bổ sung bảng log riêng.
-3. **Bộ dữ liệu demo:** chốt seed data cho buổi bảo vệ.
-
-## 8. Kết luận
+## 7. Kết luận
 
 - 14 thực thể cốt lõi giữ nguyên.
 - Class diagram đã sửa OTP, Bình chọn, Báo cáo, Nhật ký, Ảnh, ID type.
-- Database có thêm post_tags, notifications, sessions; không có moderation_jobs.
+- Database có bảng `sessions`; bỏ `post_tags`, `notifications` và `moderation_jobs`.
 - Mô hình tuân thủ EERD/class diagram ở mức logic, với các điều chỉnh đã ghi nhận.

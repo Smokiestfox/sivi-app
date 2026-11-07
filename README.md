@@ -8,7 +8,7 @@ Nền tảng forum tìm roommate và review địa điểm cho sinh viên khu L�
 - Tailwind CSS + Ant Design
 - PostgreSQL 17 + Drizzle ORM
 - Python FastAPI cho AI moderation
-- Upload ảnh local/S3
+- Upload ảnh local bằng `sharp`
 
 ## Cấu trúc
 
@@ -17,16 +17,16 @@ app/                 # page + API route handler
 components/          # UI, port dần từ branch an
 server/              # business logic, Drizzle, auth, upload
 ai-service/          # FastAPI + Laya
-docs/                # architecture, data model, diagrams, API, ops, test
+docs/                # kiến trúc, data model, diagram, vận hành, test
 storage/             # ảnh local khi dev
-tests/               # test sẽ thêm
+tests/               # Vitest cho business rule
 ~~~
 
 ## Chạy local
 
-~~~bash
-cp .env.example .env
-docker compose up -d postgres ai
+~~~powershell
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+docker compose up -d
 npm ci
 npm run db:migrate
 npm run dev
@@ -36,28 +36,33 @@ Mở http://localhost:3000.
 
 ## AI service
 
-~~~bash
-cd ai-service
+Thông thường Compose chạy AI cùng PostgreSQL. Chỉ chạy thủ công dưới đây nếu thay AI container bằng tiến trình local:
+
+~~~powershell
+Set-Location ai-service
 uv sync
 uv run uvicorn app.main:app --reload --port 8100
 ~~~
 
-Hiện /v1/moderate trả 503 vì chưa load Laya; /health dùng để kiểm tra service.
+Next.js chạy trên máy host; Compose chỉ chạy PostgreSQL và AI. Hiện `/v1/moderate` trả 503 vì chưa load Laya; `/health` dùng để kiểm tra AI service.
 
 ## Kiểm tra
 
-~~~bash
+~~~powershell
 npm run lint
 npm run typecheck
+npm test
 npm run build
+Set-Location ai-service
+uv run pytest
 ~~~
 
 ## Tài liệu
 
 - [Kiến trúc](docs/architecture.md)
+- [Đặc tả thiết kế gốc và phạm vi MVP](docs/THIET-KE-SIVI.md)
 - [Data model](docs/data-model.md)
 - [Diagram](docs/diagrams.md)
-- [API contract](docs/api.md)
 - [Vận hành](docs/operations.md)
 - [Test plan](docs/testing.md)
 
@@ -66,7 +71,7 @@ npm run build
 Đã có:
 
 - Next.js app tối thiểu + /api/health.
-- Drizzle schema 14 bảng cốt lõi + extension.
+- Drizzle schema 14 bảng cốt lõi + session.
 - FastAPI service skeleton.
 - Docker Compose cho Postgres + AI.
 - Docs kiến trúc/data model/diagram.
@@ -78,4 +83,4 @@ Chưa có:
 - CRUD posts/comments/votes/reports.
 - Upload ảnh.
 - AI model Laya.
-- Test.
+- Tính năng nghiệp vụ theo lộ trình P0 → P1 → P2.

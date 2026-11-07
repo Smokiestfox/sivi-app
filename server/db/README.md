@@ -1,6 +1,6 @@
 # server/db
 
-- schema.ts: nguồn sự thật cho 14 bảng cốt lõi và các bảng extension.
+- schema.ts: nguồn sự thật cho 14 bảng cốt lõi và bảng `sessions`.
 - client.ts: pool PostgreSQL + Drizzle client.
 - migrations/: do drizzle-kit generate sinh ra; không sửa tay nếu không cần.
 

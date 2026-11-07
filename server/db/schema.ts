@@ -32,8 +32,7 @@ export const priceRangeEnum = pgEnum("price_range", ["low", "medium", "high"]);
 export const commentStatusEnum = pgEnum("comment_status", ["active", "hidden"]);
 export const reportReasonEnum = pgEnum("report_reason", ["spam", "abuse", "misinformation", "other"]);
 export const reportStatusEnum = pgEnum("report_status", ["pending", "resolved_keep", "resolved_remove"]);
-export const moderationResultEnum = pgEnum("moderation_result", ["approved", "pending_review", "rejected"]);
-export const notificationTypeEnum = pgEnum("notification_type", ["info", "warning", "success", "error"]);
+export const moderationResultEnum = pgEnum("moderation_result", ["approved", "rejected"]);
 
 const timestamps = () => ({
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -300,10 +299,11 @@ export const moderationLogs = pgTable(
   "moderation_logs",
   {
     id: bigserial("id", { mode: "number" }).primaryKey(),
-    postId: bigint("post_id", { mode: "number" }).references(() => posts.id, { onDelete: "cascade" }),
-    commentId: bigint("comment_id", { mode: "number" }).references(() => comments.id, { onDelete: "cascade" }),
+    postId: bigint("post_id", { mode: "number" }),
+    commentId: bigint("comment_id", { mode: "number" }),
     contentType: varchar("content_type", { length: 20 }).notNull(),
     result: moderationResultEnum("result").notNull(),
+    needsReview: boolean("needs_review").notNull().default(false),
     labels: jsonb("labels").$type<Record<string, number | string[]>>().notNull().default({}),
     violationGroup: varchar("violation_group", { length: 50 }),
     confidence: numeric("confidence", { precision: 5, scale: 4 }),
@@ -321,33 +321,6 @@ export const moderationLogs = pgTable(
     ),
     check("moderation_logs_content_type_check", sql`${table.contentType} IN ('post', 'comment')`),
   ],
-);
-
-export const postTags = pgTable(
-  "post_tags",
-  {
-    postId: bigint("post_id", { mode: "number" })
-      .notNull()
-      .references(() => posts.id, { onDelete: "cascade" }),
-    tag: varchar("tag", { length: 40 }).notNull(),
-  },
-  (table) => [primaryKey({ columns: [table.postId, table.tag] })],
-);
-
-export const notifications = pgTable(
-  "notifications",
-  {
-    id: bigserial("id", { mode: "number" }).primaryKey(),
-    userId: bigint("user_id", { mode: "number" })
-      .notNull()
-      .references(() => users.id, { onDelete: "cascade" }),
-    title: varchar("title", { length: 200 }).notNull(),
-    message: text("message").notNull(),
-    type: notificationTypeEnum("type").notNull().default("info"),
-    read: boolean("read").notNull().default(false),
-    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-  },
-  (table) => [index("notifications_user_created_idx").on(table.userId, table.createdAt)],
 );
 
 export const sessions = pgTable(

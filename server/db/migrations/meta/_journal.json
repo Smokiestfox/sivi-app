@@ -8,6 +8,13 @@
       "when": 1794013398611,
       "tag": "0000_lowly_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794050597567,
+      "tag": "0001_flashy_nocturne",
+      "breakpoints": true
     }
   ]
 }
