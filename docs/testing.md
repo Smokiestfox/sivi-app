@@ -1,6 +1,6 @@
 # Test plan SiVi
 
-**Trạng thái:** đã chốt chiến lược; skeleton chưa có test.
+**Trạng thái:** chưa chốt chiến lược; skeleton chưa có test.
 
 ## 1. Mục tiêu
 
