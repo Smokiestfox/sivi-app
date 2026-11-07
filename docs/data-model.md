@@ -1,6 +1,6 @@
 # Data model SiVi v2 — đối chiếu EERD & class diagram
 
-**Trạng thái:** đã chốt  
+**Trạng thái:** chưa đã chốt  
 **Mục tiêu:** giữ 14 thực thể cốt lõi, bổ sung phần còn thiếu, chốt các điểm lệch giữa class diagram và database.  
 **Stack áp dụng:** Next.js full-stack + PostgreSQL; không phụ thuộc Django.
 
