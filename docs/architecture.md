@@ -1,6 +1,6 @@
 ﻿# Kiến trúc & Tech stack SiVi
 
-**Trạng thái:** đã chốt  
+**Trạng thái:** chưa chốt  
 **Ngày:** 07/11/2026  
 **Phạm vi:** kiến trúc web app SiVi, dùng cho skeleton và các PR tiếp theo.  
 **Bộ diagram:** xem **diagrams.md**.
