@@ -1,6 +1,6 @@
 # API contract SiVi
 
-**Trạng thái:** đã chốt  
+**Trạng thái:** chưa chốt  
 **Base path:** /api/v1  
 **Auth:** session cookie HttpOnly  
 **Content type:** application/json, trừ tạo/sửa bài dùng multipart/form-data.
