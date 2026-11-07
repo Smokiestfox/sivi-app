@@ -2,7 +2,7 @@
 
 **Mục tiêu:** chọn ít diagram nhưng mỗi cái trả lời đúng một câu hỏi, dễ review trong PR và dễ trình bày với giảng viên.
 
-## 1. Bộ diagram đã chốt
+## 1. Bộ diagram 
 
 | Ưu tiên | Diagram | Trả lời câu hỏi | Đối tượng |
 |---:|---|---|---|
