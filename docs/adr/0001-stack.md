@@ -1,6 +1,6 @@
 # ADR-0001: Next.js full-stack + PostgreSQL + Python AI
 
-**Trạng thái:** accepted  
+**Trạng thái:** chưa chốt
 **Ngày:** 07/11/2026
 
 ## Bối cảnh
