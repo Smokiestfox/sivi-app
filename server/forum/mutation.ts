@@ -1,6 +1,9 @@
 import { z } from "zod";
+import { assertStudent as requireStudent } from "../auth/guards";
 import type { ForumActor, ForumDependencies, ModerationInput } from "./contracts";
 import { ForumError } from "./errors";
+
+export { requireStudent };
 
 export const positiveId = z.number().int().positive().max(Number.MAX_SAFE_INTEGER);
 const pathId = z.string().regex(/^[1-9]\d*$/).transform(Number).pipe(positiveId);
@@ -30,14 +33,6 @@ export function validate<T>(schema: z.ZodType<T>, value: unknown): T {
     if (!(key in fields)) fields[key] = issue.message;
   }
   throw new ForumError("VALIDATION_ERROR", "Dữ liệu không hợp lệ.", fields);
-}
-
-export function requireStudent(actor: ForumActor | null): ForumActor {
-  if (!actor) throw new ForumError("UNAUTHENTICATED", "Vui lòng đăng nhập.");
-  if (actor.role !== "student" || !actor.isVerified) {
-    throw new ForumError("FORBIDDEN", "Cần xác thực sinh viên để thực hiện thao tác này.");
-  }
-  return actor;
 }
 
 export async function approve(deps: ForumDependencies, input: ModerationInput) {
