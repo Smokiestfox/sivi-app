@@ -61,4 +61,8 @@ Các trang forum hiện chưa được tạo; An cần gắn component khi làm 
 trùng, receipt và lỗi HTTP bằng DB/auth mock. Test này chưa thay cho kiểm thử
 trên PostgreSQL thật. Cần chạy lại luồng thật sau khi Đạt bàn giao auth và DB demo.
 
-ADM-01/02 (đọc hàng chờ, giữ/gỡ và xử lý cụm báo cáo) chưa thuộc REP-01/02.
+ADM-01/02 chưa thuộc REP-01/02. Các phần tiếp theo theo checklist từ main:
+
+- Admin đọc danh sách báo cáo pending/processed.
+- Admin giữ/gỡ nội dung và cập nhật tất cả báo cáo cùng target.
+- Chủ bài xem trạng thái HIDDEN trong “Bài của tôi” với nhãn “đã bị gỡ”.
