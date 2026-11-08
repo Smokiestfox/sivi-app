@@ -7,6 +7,23 @@ on:
 jobs:
   web:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: sivi_ci
+          POSTGRES_PASSWORD: sivi_ci
+          POSTGRES_DB: sivi_ci
+        ports:
+          - "5432:5432"
+        options: >-
+          --health-cmd "pg_isready -h 127.0.0.1 -U sivi_ci -d sivi_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      APP_URL: http://127.0.0.1:3000
+      DATABASE_URL: postgresql://sivi_ci:sivi_ci@127.0.0.1:5432/sivi_ci
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,8 +33,25 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      - run: npm test
+      - name: Apply database migrations
+        run: npm run db:migrate
+      - name: Run tests with PostgreSQL
+        env:
+          SIVI_TEST_DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: npm test
       - run: npm run build
+      - name: Check production database health
+        shell: bash
+        run: |
+          log="$RUNNER_TEMP/sivi-next.log"
+          node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000 > "$log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+
+          if ! curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 1 --max-time 5 "$APP_URL/api/health/db"; then
+            cat "$log"
+            exit 1
+          fi
 
   ai:
     runs-on: ubuntu-latest
