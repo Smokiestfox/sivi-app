@@ -17,6 +17,16 @@ export interface CommentFormProps {
 
 const MAX_CONTENT_LENGTH = 2000;
 
+function readErrorMessage(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== "object" || !("error" in payload)) return;
+
+  const { error } = payload;
+  if (typeof error === "string") return error.trim() || undefined;
+  if (error && typeof error === "object" && "message" in error && typeof error.message === "string") {
+    return error.message.trim() || undefined;
+  }
+}
+
 function fallbackError(status: number): string {
   switch (status) {
     case 401:
@@ -82,17 +92,8 @@ export default function CommentForm({
       });
 
       if (!response.ok) {
-        // Expected COM-01 contract: { error: string }; also handle non-JSON errors.
         const result: unknown = await response.json().catch(() => null);
-        const message =
-          result !== null &&
-          typeof result === "object" &&
-          "error" in result &&
-          typeof result.error === "string" &&
-          result.error.trim()
-            ? result.error
-            : fallbackError(response.status);
-        setError(message);
+        setError(readErrorMessage(result) ?? fallbackError(response.status));
       } else {
         saved = true;
       }
@@ -106,7 +107,6 @@ export default function CommentForm({
     if (saved) {
       setContent("");
       setSuccess("Đã đăng bình luận.");
-      // The page reads comments on the server; COM-01 must invalidate any cached reads.
       startTransition(() => router.refresh());
     }
   }
@@ -120,9 +120,9 @@ export default function CommentForm({
       <p className="mt-4 text-sm text-[#64766e]">
         {!user
           ? "Đăng nhập và xác thực sinh viên để bình luận."
-          : user.role === "guest" || !user.isVerified
-            ? "Xác thực email trường để bình luận."
-            : "Chỉ sinh viên đã xác thực mới được bình luận."}
+          : user.role === "admin"
+            ? "Chỉ sinh viên đã xác thực mới được bình luận."
+            : "Xác thực email trường để bình luận."}
       </p>
     );
   }
