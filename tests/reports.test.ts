@@ -29,7 +29,7 @@ const tx = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("APP_URL", "http://localhost:3000");
-  selectResults = [[{ role: "student", isVerified: true }], [{ id: 42 }]];
+  selectResults = [[{ role: "student", isVerified: true }], [{ id: 42, postId: 42 }], [{ id: 42 }], [{ id: 7 }]];
   insert.values.mockReturnValue(insert);
   insert.onConflictDoNothing.mockReturnValue(insert);
   insert.returning.mockResolvedValue([{ id: 100, createdAt }]);
@@ -57,7 +57,9 @@ describe("createReport", () => {
     expect(insert.values).toHaveBeenCalledWith(expect.objectContaining({
       postId: null, commentId: 7, description: "", reason: "abuse",
     }));
-    expect(tx.select.mock.results[1].value.innerJoin).toHaveBeenCalledOnce();
+    expect(tx.select).toHaveBeenCalledTimes(4);
+    expect(tx.select.mock.results[2].value.for).toHaveBeenCalledWith("share");
+    expect(tx.select.mock.results[3].value.for).toHaveBeenCalledWith("share");
   });
 
   it.each(["spam", "abuse", "misinformation", "other"])("accepts the schema reason %s", async (reason) => {

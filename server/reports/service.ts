@@ -65,22 +65,28 @@ export async function createReport(reporterId: number, body: unknown) {
 
     // Shared row locks keep the target active/existing until the insert commits.
     // A comment is publicly available only while its parent post is active too.
-    const [target] = input.postId !== undefined
-      ? await tx.select({ id: posts.id })
+    let target: { id: number } | undefined;
+    if (input.postId !== undefined) {
+      [target] = await tx.select({ id: posts.id })
         .from(posts)
         .where(and(eq(posts.id, input.postId), eq(posts.status, "active")))
         .for("share")
-        .limit(1)
-      : await tx.select({ id: comments.id })
-        .from(comments)
-        .innerJoin(posts, eq(comments.postId, posts.id))
-        .where(and(
-          eq(comments.id, input.commentId!),
-          eq(comments.status, "active"),
-          eq(posts.status, "active"),
-        ))
-        .for("share")
         .limit(1);
+    } else {
+      const [reference] = await tx.select({ postId: comments.postId }).from(comments)
+        .where(eq(comments.id, input.commentId!)).limit(1);
+      if (reference) {
+        // Match Admin and comment mutations: lock the parent post before the comment.
+        const [parent] = await tx.select({ id: posts.id }).from(posts)
+          .where(and(eq(posts.id, reference.postId), eq(posts.status, "active")))
+          .for("share").limit(1);
+        if (parent) {
+          [target] = await tx.select({ id: comments.id }).from(comments)
+            .where(and(eq(comments.id, input.commentId!), eq(comments.postId, parent.id), eq(comments.status, "active")))
+            .for("share").limit(1);
+        }
+      }
+    }
 
     if (!target) {
       throw new ReportError(404, "TARGET_UNAVAILABLE", "Nội dung đã bị gỡ hoặc không còn tồn tại.");
