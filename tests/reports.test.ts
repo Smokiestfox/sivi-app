@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ transaction: vi.fn(), requireStudent: vi.fn() }));
+const mocks = vi.hoisted(() => ({ transaction: vi.fn(), requireStudent: vi.fn(), currentUser: vi.fn() }));
 vi.mock("../server/db/client", () => ({ db: { transaction: mocks.transaction } }));
 vi.mock("../server/reports/auth", () => ({ requireReportStudent: mocks.requireStudent }));
+vi.mock("../server/auth/current-user", () => ({ getCurrentUser: mocks.currentUser }));
 
 import { POST } from "../app/api/reports/route";
 import { createReport, ReportError } from "../server/reports/service";
@@ -35,6 +36,7 @@ beforeEach(() => {
   insert.returning.mockResolvedValue([{ id: 100, createdAt }]);
   mocks.transaction.mockImplementation((callback: (connection: typeof tx) => Promise<unknown>) => callback(tx));
   mocks.requireStudent.mockResolvedValue({ id: 17 });
+  mocks.currentUser.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -212,8 +214,8 @@ describe("POST /api/reports", () => {
 });
 
 describe("pending auth integration", () => {
-  it("fails closed until Đạt connects the real student guard", async () => {
+  it("requires a current session before allowing a report", async () => {
     const auth = await vi.importActual<typeof import("../server/reports/auth")>("../server/reports/auth");
-    await expect(auth.requireReportStudent()).rejects.toMatchObject({ status: 503, code: "AUTH_NOT_READY" });
+    await expect(auth.requireReportStudent()).rejects.toMatchObject({ status: 401, code: "UNAUTHENTICATED" });
   });
 });

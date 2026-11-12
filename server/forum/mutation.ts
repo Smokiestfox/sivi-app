@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { db } from "../db/client";
+import { moderationLogs } from "../db/schema";
 import type { ForumActor, ForumDependencies, ModerationInput } from "./contracts";
 import { ForumError } from "./errors";
 
@@ -47,6 +49,22 @@ export async function approve(deps: ForumDependencies, input: ModerationInput) {
   }
   const decision = parsed.data;
   if (decision.result === "rejected") {
+    const target = input.contentType === "post" ? input.postId : input.commentId;
+    if (target !== undefined) {
+      await db.insert(moderationLogs).values({
+        contentType: input.contentType,
+        postId: input.contentType === "post" ? target : null,
+        commentId: input.contentType === "comment" ? target : null,
+        result: "rejected",
+        needsReview: false,
+        labels: {},
+        violationGroup: "simulated_violation",
+        confidence: "1",
+        reason: decision.reason,
+        modelVersion: "sivi-demo-moderation-v1",
+        policyVersion: "sivi-demo-policy-v1",
+      });
+    }
     throw new ForumError("MODERATION_REJECTED", decision.reason);
   }
 

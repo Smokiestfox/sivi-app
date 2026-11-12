@@ -225,7 +225,7 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
               <StudentVerificationForm initiallyOpen triggerLabel="Xác thực sinh viên" />
             </div>
           )}
-          {busy && <Toast kind="moderating">Đang gửi bài và chờ hệ thống kiểm duyệt AI...</Toast>}
+          {busy && <Toast kind="moderating">AI đang kiểm duyệt nội dung...</Toast>}
           <div className="flex flex-col-reverse gap-3 border-t border-[#e5e9e2] pt-5 sm:flex-row sm:justify-end">
             <button type="button" disabled={busy} onClick={onClose} className="rounded-full border border-[#dce4dd] px-5 py-3 text-sm font-bold text-[#53685f] disabled:opacity-50">Hủy</button>
             <button type="submit" disabled={busy} className="rounded-full bg-[#187b5b] px-6 py-3 text-sm font-bold text-white hover:bg-[#126448] disabled:opacity-60">{busy ? "Đang kiểm duyệt..." : type === "roommate" ? "Đăng tin" : "Gửi review"}</button>

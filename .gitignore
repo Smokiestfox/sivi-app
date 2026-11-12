@@ -13,6 +13,7 @@
 # local storage
 /storage/*
 !/storage/README.md
+/public/uploads/
 
 # python
 __pycache__/

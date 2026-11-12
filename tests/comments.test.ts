@@ -74,6 +74,6 @@ describe.skipIf(!hasTestDatabase)("comments with PostgreSQL", () => {
     expect((await listComments(postId)).items[0].content).toBe("Bản sửa");
     expect((await DELETE(deleteRequest(), ctx)).status).toBe(200);
     expect((await listComments(postId)).items).toEqual([]);
-    expect(await testDb.select().from(moderationLogs).where(eq(moderationLogs.commentId, original.id))).toHaveLength(2);
+    expect(await testDb.select().from(moderationLogs).where(eq(moderationLogs.commentId, original.id))).toHaveLength(3);
   });
 });

@@ -18,7 +18,7 @@ components/          # UI, port dần từ branch an
 server/              # business logic, Drizzle, auth, upload
 ai-service/          # FastAPI + Laya
 docs/                # kiến trúc, data model, diagram, vận hành, test
-storage/             # ảnh local khi dev
+public/uploads/       # ảnh local khi dev (được gitignore)
 tests/               # Vitest cho business rule
 ~~~
 
@@ -29,14 +29,19 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up -d
 npm ci
 npm run db:migrate
+npm run db:seed
 npm run dev
 ~~~
 
 Mở http://localhost:3000.
 
+Local demo không cần Google OAuth hoặc SMTP. Nút **Đăng nhập** cho phép chọn Guest, Sinh viên đã xác thực hoặc Admin. Tài khoản Guest có thể xác thực bằng email thuộc một trong các domain demo (`hcmut.edu.vn`, `hcmus.edu.vn`, `uit.edu.vn`) và OTP `123456`; OTP hết hạn sau 5 phút, tối đa 5 lần nhập sai. Các endpoint demo bị tắt khi `NODE_ENV=production`.
+
+Các bài viết và bình luận được kiểm duyệt giả lập sau 4,5 giây. Nội dung có `test_vi_pham` bị từ chối để kiểm tra form giữ lại dữ liệu.
+
 ## AI service
 
-Thông thường Compose chạy AI cùng PostgreSQL. Chỉ chạy thủ công dưới đây nếu thay AI container bằng tiến trình local:
+Luồng demo Next.js không gọi AI service; moderation được giả lập trong ứng dụng. Compose vẫn có thể chạy AI service cùng PostgreSQL. Chỉ chạy thủ công dưới đây nếu thay AI container bằng tiến trình local:
 
 ~~~powershell
 Set-Location ai-service
@@ -66,21 +71,10 @@ uv run pytest
 - [Vận hành](docs/operations.md)
 - [Test plan](docs/testing.md)
 
-## Trạng thái skeleton
+## Luồng demo local
 
-Đã có:
-
-- Next.js app tối thiểu + /api/health.
-- Drizzle schema 14 bảng cốt lõi + session.
-- FastAPI service skeleton.
-- Docker Compose cho Postgres + AI.
-- Docs kiến trúc/data model/diagram.
-
-Chưa có:
-
-- UI port từ branch an.
-- Auth/OTP/session.
-- CRUD posts/comments/votes/reports.
-- Upload ảnh.
-- AI model Laya.
-- Tính năng nghiệp vụ theo lộ trình P0 → P1 → P2.
+- Đăng nhập và đăng xuất bằng session cookie lưu hash token trong PostgreSQL.
+- Xác thực email trường với OTP demo.
+- Tạo/sửa/xóa bài và bình luận; vote, báo cáo, trang Admin.
+- Ảnh JPEG/PNG/WebP được lưu trong `public/uploads/`.
+- Dữ liệu demo có thể seed lại bằng `npm run db:seed` mà không tạo trùng bài, bình luận hoặc tài khoản.

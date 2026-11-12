@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ select: vi.fn(), transaction: vi.fn(), revalidate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ select: vi.fn(), transaction: vi.fn(), revalidate: vi.fn(), currentUser: vi.fn() }));
 vi.mock("../server/db/client", () => ({ db: { select: mocks.select, transaction: mocks.transaction } }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidate }));
+vi.mock("../server/auth/current-user", () => ({ getCurrentUser: mocks.currentUser }));
 
 import * as admin from "../server/admin/service";
 import { POST } from "../app/api/admin/reports/[id]/route";
@@ -32,6 +33,7 @@ const tx = {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv("APP_URL", "http://localhost:3000");
+  mocks.currentUser.mockResolvedValue(null);
   reads = [[{ role: "admin" }], [{ postId: 42, commentId: null }], [{ status: "active" }], [{ id: 10, status: "pending" }, { id: 11, status: "pending" }]];
   writes = [[{ id: 10 }, { id: 11 }]];
   updates.length = 0;
@@ -155,8 +157,8 @@ function request(body: unknown = { decision: "keep" }, headers: Record<string, s
   return new Request("http://localhost:3000/api/admin/reports/10", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
 }
 describe("admin route and auth handoff", () => {
-  it("fails closed before Đạt wires auth", async () => {
-    expect((await POST(request(), context())).status).toBe(503);
+  it("requires a real session before opening the admin route", async () => {
+    expect((await POST(request(), context())).status).toBe(401);
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
   it("uses the session admin id and invalidates admin/public pages", async () => {

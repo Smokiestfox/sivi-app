@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/current-user";
 import StudentVerificationForm from "@/components/profile/StudentVerificationForm";
+import { LoginButton, LogoutButton } from "@/components/auth/SessionControls";
 
 export default async function SiteHeader() {
   const user = await getCurrentUser();
@@ -19,30 +20,19 @@ export default async function SiteHeader() {
         <div className="ml-auto flex items-center gap-2 sm:ml-0">
           {user ? (
             <>
+              <Link href="/profile" className="whitespace-nowrap text-sm font-semibold text-[#36564a] hover:text-[#187b5b]">Cá nhân</Link>
               <span className="max-w-32 truncate text-sm font-semibold text-[#36564a] sm:max-w-48">{user.name}</span>
               {user.role === "student" && user.isVerified ? (
                 <span className="rounded-full bg-[#e7f3ed] px-3 py-1 text-xs font-bold text-[#187b5b]">Sinh viên</span>
               ) : user.role === "guest" ? (
                 <StudentVerificationForm />
               ) : null}
-              <button
-                type="button"
-                disabled
-                title="Đăng xuất sẽ khả dụng sau khi tích hợp auth backend."
-                className="rounded-full border border-[#dce4dd] px-4 py-2 text-sm font-bold text-[#64766e] opacity-60"
-              >
-                Đăng xuất
-              </button>
+              <LogoutButton />
             </>
           ) : (
-            <button
-              type="button"
-              disabled
-              title="Google OAuth chưa có route đăng nhập trên nhánh hiện tại."
-              className="rounded-full bg-[#187b5b] px-4 py-2 text-sm font-bold text-white opacity-70"
-            >
-              Đăng nhập
-            </button>
+            process.env.NODE_ENV !== "production"
+              ? <LoginButton />
+              : <button type="button" disabled title="Đăng nhập demo chỉ khả dụng ở môi trường local." className="rounded-full bg-[#187b5b] px-4 py-2 text-sm font-bold text-white opacity-70">Đăng nhập</button>
           )}
         </div>
       </div>

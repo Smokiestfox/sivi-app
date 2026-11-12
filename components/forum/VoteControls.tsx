@@ -24,6 +24,14 @@ export default function VoteControls({ postId, user, upvotes, downvotes, current
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [optimisticState, setOptimisticState] = useState<{
+    base: string;
+    value: { upvotes: number; downvotes: number; currentUserVote: 1 | -1 | null };
+  } | null>(null);
+  const baseKey = `${upvotes}:${downvotes}:${currentUserVote ?? "none"}`;
+  const voteState = optimisticState?.base === baseKey
+    ? optimisticState.value
+    : { upvotes, downvotes, currentUserVote };
 
   async function cast(value: 1 | -1) {
     if (!user || user.role !== "student" || !user.isVerified || busy) {
@@ -32,6 +40,13 @@ export default function VoteControls({ postId, user, upvotes, downvotes, current
     }
     setBusy(true);
     setError("");
+    const previous = voteState;
+    const nextVote = previous.currentUserVote === value ? null : value;
+    setOptimisticState({ base: baseKey, value: {
+      upvotes: previous.upvotes - (previous.currentUserVote === 1 ? 1 : 0) + (nextVote === 1 ? 1 : 0),
+      downvotes: previous.downvotes - (previous.currentUserVote === -1 ? 1 : 0) + (nextVote === -1 ? 1 : 0),
+      currentUserVote: nextVote,
+    } });
     try {
       const response = await fetch(`/api/posts/${postId}/vote`, {
         method: "POST",
@@ -41,11 +56,29 @@ export default function VoteControls({ postId, user, upvotes, downvotes, current
       });
       if (!response.ok) {
         const body: unknown = await response.json().catch(() => null);
+        setOptimisticState(null);
         setError(messageFrom(body) ?? "Không thể gửi bình chọn. Vui lòng thử lại.");
         return;
       }
+      const body: unknown = await response.json();
+      if (body && typeof body === "object" && "counts" in body && "currentUserVote" in body) {
+        const counts = body.counts;
+        const currentVote = body.currentUserVote;
+        if (
+          counts && typeof counts === "object" &&
+          "upvotes" in counts && typeof counts.upvotes === "number" &&
+          "downvotes" in counts && typeof counts.downvotes === "number" &&
+          (currentVote === 1 || currentVote === -1 || currentVote === null)
+        ) {
+          setOptimisticState({
+            base: baseKey,
+            value: { upvotes: counts.upvotes, downvotes: counts.downvotes, currentUserVote: currentVote },
+          });
+        }
+      }
       router.refresh();
     } catch {
+      setOptimisticState(null);
       setError("Không thể kết nối máy chủ. Bình chọn chưa được cập nhật.");
     } finally {
       setBusy(false);
@@ -58,22 +91,22 @@ export default function VoteControls({ postId, user, upvotes, downvotes, current
         <button
           type="button"
           aria-label="Upvote"
-          aria-pressed={currentUserVote === 1}
+          aria-pressed={voteState.currentUserVote === 1}
           disabled={busy}
           onClick={() => void cast(1)}
-          className={`rounded-full px-3 py-1.5 text-sm font-bold ${currentUserVote === 1 ? "bg-[#187b5b] text-white" : "text-[#36564a] hover:bg-[#eef4ef]"}`}
+          className={`rounded-full px-3 py-1.5 text-sm font-bold ${voteState.currentUserVote === 1 ? "bg-[#187b5b] text-white" : "text-[#36564a] hover:bg-[#eef4ef]"}`}
         >
-          ↑ {upvotes}
+          ↑ {voteState.upvotes}
         </button>
         <button
           type="button"
           aria-label="Downvote"
-          aria-pressed={currentUserVote === -1}
+          aria-pressed={voteState.currentUserVote === -1}
           disabled={busy}
           onClick={() => void cast(-1)}
-          className={`rounded-full px-3 py-1.5 text-sm font-bold ${currentUserVote === -1 ? "bg-[#a44735] text-white" : "text-[#36564a] hover:bg-[#f8eeeb]"}`}
+          className={`rounded-full px-3 py-1.5 text-sm font-bold ${voteState.currentUserVote === -1 ? "bg-[#a44735] text-white" : "text-[#36564a] hover:bg-[#f8eeeb]"}`}
         >
-          ↓ {downvotes}
+          ↓ {voteState.downvotes}
         </button>
       </div>
       {error && <Toast kind="error">{error}</Toast>}

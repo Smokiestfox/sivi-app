@@ -19,7 +19,7 @@ forumMocks();
 const image = (name: string) => new File([name], name + ".webp", { type: "image/webp" });
 
 describe("forum write boundary", () => {
-  it("fails closed with the default dependencies before team modules are wired", async () => {
+  it("rejects anonymous writes with the default database-backed dependencies", async () => {
     const { forumDependencies } = await vi.importActual<typeof import("../server/forum/dependencies")>(
       "../server/forum/dependencies",
     );
@@ -28,9 +28,7 @@ describe("forum write boundary", () => {
     const anonymous = jsonRequest({});
     anonymous.headers.set("cookie", "theme=dark");
     expect((await handler(anonymous)).status).toBe(401);
-    const withSession = jsonRequest({});
-    withSession.headers.set("cookie", "sivi_session=fixture");
-    expect((await handler(withSession)).status).toBe(503);
+    expect((await handler(jsonRequest({}))).status).toBe(401);
     expect(run).not.toHaveBeenCalled();
   });
 
@@ -190,11 +188,11 @@ describe.skipIf(!hasTestDatabase)("posts with PostgreSQL", () => {
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ title: payload.title, images: [{ id: kept.id }, { id: expect.any(Number) }] });
     expect(deps.removeImage).toHaveBeenCalledExactlyOnceWith(removed.storageKey);
-    expect(await testDb.select().from(moderationLogs)).toHaveLength(2);
+    expect(await testDb.select().from(moderationLogs)).toHaveLength(3);
     expect((await DELETE(deleteRequest(), idContext(original.id))).status).toBe(200);
     expect(await getPost(original.id)).toBeNull();
     expect(await testDb.select().from(postImages)).toEqual([]);
-    expect(await testDb.select().from(moderationLogs)).toHaveLength(2);
+    expect(await testDb.select().from(moderationLogs)).toHaveLength(3);
     expect(deps.removeImage).toHaveBeenCalledWith(kept.storageKey);
   });
 });

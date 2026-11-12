@@ -154,12 +154,13 @@ export default function CommentForm({
       />
       {error && <p id={errorId} role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
       {success && <p role="status" className="mt-2 text-sm text-[#187b5b]">{success}</p>}
+      {submitting && <p role="status" className="mt-2 text-sm text-[#187b5b]">AI đang kiểm duyệt nội dung...</p>}
       <button
         type="submit"
         disabled={busy}
         className="mt-3 rounded-full bg-[#187b5b] px-5 py-2.5 text-sm font-bold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#187b5b] disabled:opacity-60"
       >
-        {submitting ? "Đang kiểm duyệt..." : refreshing ? "Đang cập nhật..." : "Gửi bình luận"}
+        {submitting ? "AI đang kiểm duyệt..." : refreshing ? "Đang cập nhật..." : "Gửi bình luận"}
       </button>
     </form>
   );

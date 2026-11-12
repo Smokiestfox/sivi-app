@@ -3,6 +3,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { db } from "../db/client";
 import { comments, moderationLogs, posts, reports, users } from "../db/schema";
+import { getCurrentUser } from "../auth/current-user";
 
 export class AdminError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
@@ -11,9 +12,13 @@ export class AdminError extends Error {
   }
 }
 
-/** AUTH-01 handoff: Đạt replaces this body with the real server-session admin guard. */
 export async function requireAdmin(): Promise<{ id: number }> {
-  throw new AdminError(503, "AUTH_NOT_READY", "Trang quản trị đang chờ kết nối xác thực. Vui lòng thử lại sau.");
+  const user = await getCurrentUser();
+  if (!user) throw new AdminError(401, "UNAUTHENTICATED", "Vui lòng đăng nhập.");
+  if (user.role !== "admin") {
+    throw new AdminError(403, "FORBIDDEN", "Bạn cần quyền quản trị để xử lý báo cáo.");
+  }
+  return { id: user.id };
 }
 
 type Reader = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

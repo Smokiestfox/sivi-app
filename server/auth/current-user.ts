@@ -8,6 +8,8 @@ export type CurrentUser = {
   id: number;
   name: string;
   email: string;
+  universityEmail: string | null;
+  universityId: number | null;
   avatarUrl: string | null;
   role: "guest" | "student" | "admin";
   isVerified: boolean;
@@ -22,6 +24,8 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     id: users.id,
     name: users.name,
     email: users.email,
+    universityEmail: users.universityEmail,
+    universityId: users.universityId,
     avatarUrl: users.avatarUrl,
     role: users.role,
     isVerified: users.isVerified,
