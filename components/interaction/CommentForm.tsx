@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition, type FormEvent } from "react";
+import StudentVerificationForm from "@/components/profile/StudentVerificationForm";
 
 export interface CommentFormUser {
   role: "guest" | "student" | "admin";
@@ -117,13 +118,16 @@ export default function CommentForm({
 
   if (!canComment) {
     return (
-      <p className="mt-4 text-sm text-[#64766e]">
-        {!user
-          ? "Đăng nhập và xác thực sinh viên để bình luận."
-          : user.role === "guest" || !user.isVerified
-            ? "Xác thực email trường để bình luận."
-            : "Chỉ sinh viên đã xác thực mới được bình luận."}
-      </p>
+      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-[#64766e]">
+        <p>
+          {!user
+            ? "Đăng nhập và xác thực sinh viên để bình luận."
+            : user.role === "guest" || !user.isVerified
+              ? "Xác thực email trường để bình luận."
+              : "Chỉ sinh viên đã xác thực mới được bình luận."}
+        </p>
+        {user?.role === "guest" && <StudentVerificationForm triggerLabel="Xác thực để bình luận" />}
+      </div>
     );
   }
 
