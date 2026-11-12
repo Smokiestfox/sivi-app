@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import "./globals.css";
+import ShellLayout from "@/components/layout/ShellLayout";
 
 export const metadata: Metadata = {
   title: "SiVi",
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body>
+        <ShellLayout>{children}</ShellLayout>
+      </body>
     </html>
   );
 }
