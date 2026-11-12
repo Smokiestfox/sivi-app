@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { CommentFormUser } from "./CommentForm";
+import StudentVerificationForm from "@/components/profile/StudentVerificationForm";
 
 type ReportTarget =
   | { postId: number; commentId?: never }
@@ -35,6 +36,9 @@ function fallbackError(status: number) {
 /** Can be placed directly in a Server Component; the open/close state stays here. */
 export function ReportButton(props: ReportButtonProps) {
   const [open, setOpen] = useState(false);
+  if (props.user?.role === "guest" || (props.user?.role === "student" && !props.user.isVerified)) {
+    return <StudentVerificationForm triggerLabel="Xác thực để báo cáo" />;
+  }
   if (props.user?.role !== "student" || !props.user.isVerified) return null;
 
   return (
