@@ -154,16 +154,28 @@ const context = (id = "10") => ({ params: Promise.resolve({ id }) });
 function request(body: unknown = { decision: "keep" }, headers: Record<string, string> = {}) {
   return new Request("http://localhost:3000/api/admin/reports/10", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
 }
-describe("admin route and auth handoff", () => {
-  it("fails closed before Đạt wires auth", async () => {
-    expect((await POST(request(), context())).status).toBe(503);
+describe("admin route and session authorization", () => {
+  const cookie = `sivi_session=${"a".repeat(43)}`;
+
+  it("rejects requests without a session cookie", async () => {
+    const response = await POST(request(), context());
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({ code: "UNAUTHENTICATED" });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+  it.each(["guest", "student"])("rejects a signed-in %s before updating reports", async (role) => {
+    reads.unshift([{ id: 3, role }]);
+    const response = await POST(request({ decision: "keep" }, { cookie }), context());
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toMatchObject({ code: "FORBIDDEN" });
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
   it("uses the session admin id and invalidates admin/public pages", async () => {
-    vi.spyOn(admin, "requireAdmin").mockResolvedValue({ id: 3 });
-    const response = await POST(request(), context());
+    reads.unshift([{ id: 3, role: "admin" }]);
+    const response = await POST(request({ decision: "keep" }, { cookie }), context());
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ processedCount: 2, decision: "keep" });
+    expect(updates[0].values).toMatchObject({ resolvedBy: 3 });
     expect(mocks.revalidate.mock.calls.map(([path]) => path)).toEqual(["/admin", "/", "/review", "/profile", "/posts/42"]);
   });
   it.each([401, 403])("preserves auth failure status %s", async (status) => {

@@ -4,11 +4,10 @@
 `reports.status/resolvedBy/resolvedAt/resolutionNote` và `moderation_logs`.
 Không thêm bảng, notification hoặc cơ chế tự động gỡ khi đủ số báo cáo.
 
-## Điểm nối auth của Đạt
+## Xác thực Admin
 
-`requireAdmin()` ngay trong `service.ts` là adapter chờ AUTH-01. Đạt thay phần thân
-bằng guard session thật, trả `{ id: number }` và chuyển lỗi thành `AdminError`
-401 (chưa đăng nhập) hoặc 403 (thiếu quyền). Hiện helper trả 503 `AUTH_NOT_READY`.
+`requireAdmin()` trong `service.ts` gọi guard của AUTH-01 và chuyển lỗi sang
+`AdminError`. Phiên thiếu hoặc hết hạn trả 401. Tài khoản thiếu quyền trả 403.
 Cả `/admin` và API đều gọi guard trước khi đọc/ghi. Service còn kiểm tra lại role
 admin trong DB; dữ liệu từ client không quyết định quyền.
 
@@ -48,5 +47,5 @@ processedCount, targetType/targetId, postId, resolvedAt và message.
   và dọn schema khi kết thúc, dùng cùng cách với tests forum của Chính.
 - Khi chưa cấu hình DB kiểm thử, suite integration được skip rõ ràng.
 
-Auth thật, DB integration và review transaction của Chính/guard của Đạt vẫn là
-các bước cần hoàn tất trước nghiệm thu ADM-01/02.
+Nghiệm thu ADM-01/02 cần chạy OAuth với tài khoản trong `ADMIN_EMAILS`, kiểm thử
+PostgreSQL và review transaction/guard với nhóm.

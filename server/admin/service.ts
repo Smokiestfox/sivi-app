@@ -1,8 +1,10 @@
 import { and, asc, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
+import { requireAdmin as requireSessionAdmin } from "../auth/service";
 import { db } from "../db/client";
 import { comments, moderationLogs, posts, reports, users } from "../db/schema";
+import { ForumError } from "../forum/errors";
 
 export class AdminError extends Error {
   constructor(public readonly status: number, public readonly code: string, message: string) {
@@ -11,9 +13,16 @@ export class AdminError extends Error {
   }
 }
 
-/** AUTH-01 handoff: Đạt replaces this body with the real server-session admin guard. */
-export async function requireAdmin(): Promise<{ id: number }> {
-  throw new AdminError(503, "AUTH_NOT_READY", "Trang quản trị đang chờ kết nối xác thực. Vui lòng thử lại sau.");
+export async function requireAdmin(request?: Request): Promise<{ id: number }> {
+  try {
+    const user = await requireSessionAdmin(request);
+    return { id: user.id };
+  } catch (error) {
+    if (error instanceof ForumError) {
+      throw new AdminError(error.toResponse().status, error.code, error.message);
+    }
+    throw error;
+  }
 }
 
 type Reader = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

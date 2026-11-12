@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AdminLoginDialog from "../../components/admin/AdminLoginDialog";
 import ReportQueue from "../../components/admin/ReportQueue";
 import { AdminError, listReportQueue, requireAdmin } from "../../server/admin/service";
 import type { ReportQueueItem } from "../../server/admin/service";
@@ -11,11 +12,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const status = params.status === "processed" ? "processed" : "pending";
   let items: ReportQueueItem[] = [];
   let message: string | null = null;
+  let loginRequired = false;
   try {
     const admin = await requireAdmin();
     items = await listReportQueue(admin.id, status);
   } catch (error) {
     message = error instanceof AdminError ? error.message : "Không tải được hàng chờ báo cáo. Vui lòng thử lại sau.";
+    loginRequired = error instanceof AdminError && error.status === 401;
   }
   return (
     <main className="min-h-screen bg-[#f7f8f5] text-[#18352d]">
@@ -30,7 +33,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </Link>
           ))}
         </nav>
-        {message ? (
+        {loginRequired ? <AdminLoginDialog /> : message ? (
           <div className="rounded-2xl border border-[#e5e9e2] bg-white p-6">
             <p role="alert" className="text-sm text-[#64766e]">{message}</p>
             <Link href={status === "pending" ? "/admin" : "/admin?status=processed"} className="mt-4 inline-block font-semibold text-[#187b5b]">Thử lại</Link>
