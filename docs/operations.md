@@ -22,12 +22,14 @@
 | ADMIN_EMAILS | Có | Danh sách email admin, phân tách bằng dấu phẩy |
 | SMTP_URL | Có | SMTP gửi OTP |
 | EMAIL_FROM | Có | Địa chỉ gửi |
+| OTP_SECRET | Có | Khóa bí mật tối thiểu 32 byte để HMAC mã OTP |
 | AI_MODERATION_URL | Có | URL Python AI service |
 | AI_MODERATION_API_KEY | Không | Bearer token nếu AI service yêu cầu |
 | STORAGE_DIR | Có | Thư mục ảnh local |
 | MAX_UPLOAD_BYTES | Không | Mặc định 5 MB |
 
 Không commit .env. .env.example chỉ chứa giá trị mẫu.
+Tạo `OTP_SECRET` bằng `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"`.
 Trong Google Cloud Console, đăng ký redirect URI `http://localhost:3000/api/auth/google/callback` khi chạy local.
 
 ## 3. Local
