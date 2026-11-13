@@ -1,15 +1,16 @@
 import { getCurrentUser } from "../auth/service";
 import type { ForumDependencies } from "./contracts";
 import { ForumError } from "./errors";
+import { removeImage, saveImage } from "../uploads/service";
 
 async function unavailable(): Promise<never> {
   throw new ForumError("SERVICE_UNAVAILABLE", "Dịch vụ chưa sẵn sàng. Vui lòng thử lại sau.");
 }
 
-// Wire moderation and storage here once AI-02 and IMG-01 land.
+// Moderation remains unavailable until AI-02 is integrated.
 export const forumDependencies: ForumDependencies = {
   getActor: getCurrentUser,
   moderate: unavailable,
-  saveImage: unavailable,
-  removeImage: unavailable,
+  saveImage,
+  removeImage,
 };

@@ -4,6 +4,7 @@ import {
 } from "../db/schema";
 import { ForumError } from "../forum/errors";
 import { boundedBody, positiveId, validate } from "../forum/mutation";
+import { getMaxUploadBytes, MAX_POST_IMAGES } from "../uploads/limits";
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).nullish();
@@ -45,10 +46,7 @@ export const postPayload = z.discriminatedUnion("type", [
   }),
 ]);
 
-const maxImages = 5;
-const maxImageBytes = 5 * 1024 * 1024;
-const filesSchema = z.array(z.file().min(1).max(maxImageBytes)).max(maxImages);
-const keptImagesSchema = z.array(positiveId).max(maxImages)
+const keptImagesSchema = z.array(positiveId).max(MAX_POST_IMAGES)
   .refine((ids) => new Set(ids).size === ids.length, "ID ảnh giữ lại bị trùng.");
 
 export type PostPayload = z.output<typeof postPayload>;
@@ -71,21 +69,26 @@ export async function readPostForm(request: Request, editing = false) {
   if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "multipart/form-data") {
     throw new ForumError("VALIDATION_ERROR", "Yêu cầu phải gửi dưới dạng multipart/form-data.");
   }
+  const maxImageBytes = getMaxUploadBytes();
   let form: FormData;
   try {
-    form = await boundedBody(request, maxImages * maxImageBytes + 256 * 1024).formData();
+    form = await boundedBody(request, MAX_POST_IMAGES * maxImageBytes + 256 * 1024).formData();
   } catch (error) {
     if (error instanceof ForumError) throw error;
     throw new ForumError("VALIDATION_ERROR", "Không đọc được dữ liệu form.");
   }
 
-  const schema = z.object({ payload: postPayload, images: filesSchema, keepImageIds: keptImagesSchema });
+  const schema = z.object({
+    payload: postPayload,
+    images: z.array(z.file().min(1).max(maxImageBytes)).max(MAX_POST_IMAGES),
+    keepImageIds: keptImagesSchema,
+  });
   const parsed = validate(schema, {
     payload: readPart(form, "payload"),
     images: form.getAll("images"),
     keepImageIds: editing ? readPart(form, "keepImageIds") : [],
   });
-  if (parsed.images.length + parsed.keepImageIds.length > maxImages) {
+  if (parsed.images.length + parsed.keepImageIds.length > MAX_POST_IMAGES) {
     throw new ForumError("VALIDATION_ERROR", "Mỗi bài chỉ được có tối đa 5 ảnh.");
   }
   return parsed;
