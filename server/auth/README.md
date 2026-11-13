@@ -19,3 +19,21 @@ Google OIDC dùng Authorization Code Flow, state, nonce, PKCE S256 và xác minh
 Tài khoản mới mặc định là guest. `ADMIN_EMAILS` có thể cấp vai trò admin khi đăng nhập bằng Gmail hoặc tài khoản Google Workspace có claim `hd`. Vai trò đã cấp được lưu trong DB. Để thu hồi quyền admin, gỡ email khỏi allowlist và cập nhật role trong DB.
 
 Phiên hết hạn sau 30 ngày. DB lưu SHA-256 của token ngẫu nhiên. Cookie `sivi_session` dùng cho HTTP loopback. HTTPS dùng `__Host-sivi_session`. Cả hai dùng HttpOnly, SameSite=Lax và Path=/, với Secure trên HTTPS.
+
+## OTP xác thực email trường
+
+`POST /api/auth/otp/request` nhận `{ "email": "student@university.edu.vn" }`.
+`POST /api/auth/otp/verify` nhận `{ "email": "student@university.edu.vn", "otp": "123456" }`.
+Hai API chỉ dùng được với session đang đăng nhập; `userId` luôn lấy từ session,
+không nhận từ client. Origin phải khớp `APP_URL`.
+
+Request chỉ chấp nhận domain có `domain_type = student` trong
+`university_domains`. OTP sáu chữ số có hạn 5 phút, chỉ lưu HMAC-SHA256 dùng
+`OTP_SECRET`, giới hạn 5 lần nhập sai và giới hạn gửi 60 giây theo user/email.
+Email được gửi bằng `SMTP_URL` và `EMAIL_FROM`. Xác thực thành công cập nhật
+tài khoản guest thành student trong transaction, liên kết email/trường và tạo
+hồ sơ student nếu chưa có.
+
+Response thành công request gồm `message` và `expiresInSeconds`; verify trả
+`user` và `message`. Lỗi trả `{ error, code }`. Cấu hình `OTP_SECRET` tối thiểu
+32 byte cùng SMTP trước khi chạy demo.
