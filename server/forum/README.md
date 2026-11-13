@@ -41,8 +41,8 @@ Lỗi trả `{ error: { code, message, fields? } }`. Dùng `message` để hiệ
 
 Điểm nối duy nhất ở `server/forum/dependencies.ts`. Dùng kiểu trong `contracts.ts` để viết adapter khi các module được merge.
 
-- **Đạt / AUTH-01** — `getActor(request)` đọc session đã xác thực ở server. Trả `null` nếu session thiếu, sai hoặc hết hạn, hoặc trả ID, role và trạng thái xác thực của user.
+- **AUTH-01** — `getActor(request)` dùng `getCurrentUser(request)` từ `server/auth/service.ts`. Hàm trả `null` khi thiếu session, token sai hoặc phiên hết hạn. Xem [hướng dẫn cấu hình Google và các guard](../auth/README.md).
 - **Bách / AI-02** — `moderate(input)` chuyển `contentType`, ID nếu có, `title` và `body` sang contract AI. Adapter áp dụng policy và timeout, rồi trả kết quả chuẩn hóa. Throw khi lỗi hoặc không có kết quả hợp lệ. Forum ghi log approval trong cùng transaction với nội dung. Kết quả reject không tạo bài/bình luận.
 - **Đạt / IMG-01** — `saveImage(file)` xác thực nội dung ảnh, xử lý và trả metadata với storage key duy nhất. Nếu throw, adapter dọn file nó vừa ghi. `removeImage(storageKey)` nhận key do server cấp và chạy lặp an toàn. Khi DB rollback, forum dọn file mới nếu DB xác nhận chưa được tham chiếu. Khi sửa hoặc xóa thành công, forum dọn ảnh cũ sau commit.
 
-Các adapter mặc định từ chối ghi khi phụ thuộc chưa được ghép. Không có chế độ bỏ qua session hoặc moderation. Kiểm thử PostgreSQL chạy bằng schema tạm trong DB test và dùng test doubles ở ba điểm nối này. Đặt `SIVI_TEST_DATABASE_URL` trỏ đến database phát triển riêng, với quyền tạo schema, rồi chạy `npm test`. Các test không cần DB vẫn chạy khi biến này chưa được đặt.
+Các adapter moderation và ảnh từ chối ghi cho đến khi module tương ứng được ghép. Kiểm thử PostgreSQL chạy bằng schema tạm trong DB test. Test forum dùng test doubles cho session, moderation và ảnh. Test Auth dùng session DB thật với nhà cung cấp OIDC mô phỏng. Đặt `SIVI_TEST_DATABASE_URL` trỏ đến database test riêng với quyền tạo schema, rồi chạy `npm test`. Các test không cần DB vẫn chạy khi biến này chưa được đặt.
