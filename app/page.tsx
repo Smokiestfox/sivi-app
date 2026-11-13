@@ -1,31 +1,41 @@
-const docs = ["Kiến trúc", "Data model", "Diagram"];
+import type { Metadata } from "next";
+import PostList from "@/components/forum/PostList";
+import { ErrorState } from "@/components/ui/Feedback";
+import { getCurrentUser } from "@/server/auth/current-user";
+import { listPosts } from "@/server/posts/service";
 
-export default function Home() {
+export const dynamic = "force-dynamic";
+export const metadata: Metadata = {
+  title: "Tìm chỗ ở | SiVi",
+  description: "Tìm roommate và chỗ ở quanh Làng Đại học cùng cộng đồng sinh viên.",
+};
+
+async function loadRoommateFeed() {
+  try {
+    const user = await getCurrentUser();
+    const { items } = await listPosts({ type: "roommate", viewerId: user?.id, limit: 50 });
+    return { user, items, error: false as const };
+  } catch (error) {
+    console.error("Could not load roommate feed", error instanceof Error ? error.name : "UnknownError");
+    return { error: true as const };
+  }
+}
+
+export default async function HomePage() {
+  const result = await loadRoommateFeed();
+  if (result.error) {
+    return <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6"><ErrorState title="Chưa thể tải tin tìm chỗ ở">Dịch vụ đọc bài đang gặp sự cố. Vui lòng thử tải lại trang sau.</ErrorState></main>;
+  }
   return (
-    <main className="mx-auto max-w-4xl px-6 py-16">
-      <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">SiVi skeleton</p>
-      <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900">Nền tảng đã sẵn sàng để phát triển.</h1>
-      <p className="mt-4 max-w-2xl text-slate-600">
-        Đây là skeleton Next.js full-stack, PostgreSQL, Drizzle ORM và Python AI service.
-        UI từ branch an sẽ được port dần vào components/.
-      </p>
-      <div className="mt-8 flex flex-wrap gap-3">
-        {docs.map((label) => (
-          <span key={label} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">
-            {label}
-          </span>
-        ))}
-      </div>
-      <p className="mt-4 text-sm text-slate-500">Tài liệu nằm trong thư mục docs/ của repo.</p>
-      <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
-        <p className="font-semibold text-slate-900">Bước tiếp theo</p>
-        <ol className="mt-3 list-decimal space-y-2 pl-5">
-          <li>Chạy PostgreSQL và AI bằng Docker Compose.</li>
-          <li>Generate và migrate schema Drizzle.</li>
-          <li>Port UI từ sivi-app/components.</li>
-          <li>Nối auth, upload và AI service.</li>
-        </ol>
-      </div>
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+      <section className="rounded-3xl bg-[#eaf2eb] px-5 py-8 sm:px-10 sm:py-12">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#187b5b]">Cộng đồng sinh viên Làng Đại học</p>
+        <h1 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-[#18352d] sm:text-5xl">Tìm chỗ ở tốt, gặp bạn cùng nhà hợp gu.</h1>
+        <p className="mt-4 max-w-2xl text-sm leading-6 text-[#53685f] sm:text-base">Khám phá tin tìm roommate, phòng ở và chia sẻ thông tin với cộng đồng sinh viên.</p>
+      </section>
+      <section className="mt-8" aria-label="Danh sách bài tìm roommate">
+        <PostList posts={result.items} type="roommate" user={result.user} />
+      </section>
     </main>
   );
 }
