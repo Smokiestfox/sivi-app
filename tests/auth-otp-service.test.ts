@@ -87,7 +87,7 @@ describe("requestOtp", () => {
       [],
       [],
     ];
-    const { requestOtp } = await vi.importActual<typeof import("../server/auth/service")>("../server/auth/service");
+    const { requestOtp } = await vi.importActual<typeof import("../server/auth/otp")>("../server/auth/otp");
 
     await expect(requestOtp(7, { email: "  STUDENT@UIT.EDU.VN " })).resolves.toMatchObject({
       expiresInSeconds: 300,
@@ -110,7 +110,7 @@ describe("requestOtp", () => {
 
   it("rejects unsupported domains before inserting or sending", async () => {
     selectResults = [[{ id: 7, role: "guest", isVerified: false }], []];
-    const { requestOtp } = await vi.importActual<typeof import("../server/auth/service")>("../server/auth/service");
+    const { requestOtp } = await vi.importActual<typeof import("../server/auth/otp")>("../server/auth/otp");
 
     await expect(requestOtp(7, { email: "student@unsupported.example" }))
       .rejects.toMatchObject({ status: 400, code: "UNSUPPORTED_EMAIL_DOMAIN" });
@@ -127,7 +127,7 @@ describe("requestOtp", () => {
       [],
     ];
     mocks.deliverEmail.mockRejectedValue(new Error("SMTP unavailable"));
-    const { requestOtp } = await vi.importActual<typeof import("../server/auth/service")>("../server/auth/service");
+    const { requestOtp } = await vi.importActual<typeof import("../server/auth/otp")>("../server/auth/otp");
 
     await expect(requestOtp(7, { email: "student@uit.edu.vn" }))
       .rejects.toMatchObject({ status: 503, code: "EMAIL_DELIVERY_FAILED" });
@@ -155,7 +155,7 @@ describe("verifyOtp", () => {
       [{ id: 23 }],
       [],
     ];
-    const { verifyOtp } = await vi.importActual<typeof import("../server/auth/service")>("../server/auth/service");
+    const { verifyOtp } = await vi.importActual<typeof import("../server/auth/otp")>("../server/auth/otp");
 
     await expect(verifyOtp(7, { email, otp })).resolves.toMatchObject({
       user: { id: 7, role: "student", isVerified: true },
@@ -188,7 +188,7 @@ describe("verifyOtp", () => {
         status: "pending",
       }],
     ];
-    const { verifyOtp } = await vi.importActual<typeof import("../server/auth/service")>("../server/auth/service");
+    const { verifyOtp } = await vi.importActual<typeof import("../server/auth/otp")>("../server/auth/otp");
 
     await expect(verifyOtp(7, { email: "student@uit.edu.vn", otp: "123456" }))
       .rejects.toMatchObject({ status: 423, code: "OTP_LOCKED" });
@@ -211,7 +211,7 @@ describe("verifyOtp", () => {
         status: "pending",
       }],
     ];
-    const { verifyOtp } = await vi.importActual<typeof import("../server/auth/service")>("../server/auth/service");
+    const { verifyOtp } = await vi.importActual<typeof import("../server/auth/otp")>("../server/auth/otp");
 
     await expect(verifyOtp(7, { email: "student@uit.edu.vn", otp: "123456" }))
       .rejects.toMatchObject({ status: 410, code: "OTP_EXPIRED" });

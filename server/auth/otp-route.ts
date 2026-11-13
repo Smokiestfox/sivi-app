@@ -27,7 +27,7 @@ export async function handleOtpRoute(request: Request, action: OtpAction) {
       throw new OtpError(415, "INVALID_CONTENT_TYPE", "Yêu cầu phải sử dụng định dạng JSON.");
     }
 
-    const user = await getCurrentUser();
+    const user = await getCurrentUser(request);
     if (!user) {
       throw new OtpError(401, "UNAUTHENTICATED", "Vui lòng đăng nhập để xác thực email trường.");
     }

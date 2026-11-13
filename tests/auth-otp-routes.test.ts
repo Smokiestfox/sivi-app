@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("../server/auth/current-user", () => ({ getCurrentUser: mocks.getCurrentUser }));
-vi.mock("../server/auth/service", () => ({
+vi.mock("../server/auth/otp", () => ({
   requestOtp: mocks.requestOtp,
   verifyOtp: mocks.verifyOtp,
 }));
@@ -38,7 +38,10 @@ function request(path: string, body: unknown, origin = "http://localhost:3000") 
 
 describe("OTP endpoints", () => {
   it("requests a code using the server-session user", async () => {
-    const response = await requestOtpRoute(request("/api/auth/otp/request", { email: "student@uit.edu.vn" }));
+    const req = request("/api/auth/otp/request", { email: "student@uit.edu.vn" });
+    const response = await requestOtpRoute(req);
+
+    expect(mocks.getCurrentUser).toHaveBeenCalledWith(req);
 
     expect(response.status).toBe(200);
     expect(response.headers.get("cache-control")).toBe("no-store");
@@ -69,7 +72,10 @@ describe("OTP endpoints", () => {
 
   it("requires a logged-in user", async () => {
     mocks.getCurrentUser.mockResolvedValue(null);
-    const response = await requestOtpRoute(request("/api/auth/otp/request", { email: "student@uit.edu.vn" }));
+    const req = request("/api/auth/otp/request", { email: "student@uit.edu.vn" });
+    const response = await requestOtpRoute(req);
+
+    expect(mocks.getCurrentUser).toHaveBeenCalledWith(req);
 
     expect(response.status).toBe(401);
     expect(mocks.requestOtp).not.toHaveBeenCalled();

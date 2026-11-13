@@ -19,7 +19,7 @@ forumMocks();
 const image = (name: string) => new File([name], name + ".webp", { type: "image/webp" });
 
 describe("forum write boundary", () => {
-  it("fails closed with the default dependencies before team modules are wired", async () => {
+  it("rejects missing and malformed session tokens with the default dependencies", async () => {
     const { forumDependencies } = await vi.importActual<typeof import("../server/forum/dependencies")>(
       "../server/forum/dependencies",
     );
@@ -30,7 +30,7 @@ describe("forum write boundary", () => {
     expect((await handler(anonymous)).status).toBe(401);
     const withSession = jsonRequest({});
     withSession.headers.set("cookie", "sivi_session=fixture");
-    expect((await handler(withSession)).status).toBe(503);
+    expect((await handler(withSession)).status).toBe(401);
     expect(run).not.toHaveBeenCalled();
   });
 
