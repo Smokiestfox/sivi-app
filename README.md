@@ -29,8 +29,13 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 docker compose up -d
 npm ci
 npm run db:migrate
+npm run db:seed
 npm run dev
 ~~~
+
+`npm run db:seed` tạo dữ liệu demo cho hai trường UIT/HCMUS, ba domain email,
+hai tài khoản sinh viên và hai bài mỗi loại (tìm roommate, review). Lệnh có thể
+chạy lại để cập nhật dữ liệu demo và từ chối chạy khi `NODE_ENV=production`.
 
 Mở http://localhost:3000.
 
