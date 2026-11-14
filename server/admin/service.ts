@@ -1,3 +1,5 @@
+import { requireAdmin as requireSessionAdmin } from "../auth/service";
+import { ForumError } from "../forum/errors";
 import { and, asc, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
@@ -11,9 +13,15 @@ export class AdminError extends Error {
   }
 }
 
-/** AUTH-01 handoff: Đạt replaces this body with the real server-session admin guard. */
-export async function requireAdmin(): Promise<{ id: number }> {
-  throw new AdminError(503, "AUTH_NOT_READY", "Trang quản trị đang chờ kết nối xác thực. Vui lòng thử lại sau.");
+export async function requireAdmin(request?: Request): Promise<{ id: number }> {
+  try {
+    return await requireSessionAdmin(request);
+  } catch (error) {
+    if (error instanceof ForumError) {
+      throw new AdminError(error.toResponse().status, error.code, error.message);
+    }
+    throw error;
+  }
 }
 
 type Reader = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];

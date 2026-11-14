@@ -16,7 +16,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() !== "application/json") {
       throw new AdminError(415, "INVALID_CONTENT_TYPE", "Yêu cầu phải sử dụng định dạng JSON.");
     }
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     const { id } = await context.params;
     if (!/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id))) {
       throw new AdminError(400, "INVALID_ID", "Mã báo cáo không hợp lệ.");

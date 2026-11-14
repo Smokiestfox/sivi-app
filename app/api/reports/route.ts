@@ -17,7 +17,7 @@ export async function POST(request: Request) {
       throw new ReportError(415, "INVALID_CONTENT_TYPE", "Yêu cầu phải sử dụng định dạng JSON.");
     }
 
-    const user = await requireReportStudent();
+    const user = await requireReportStudent(request);
     let body: unknown;
     try {
       body = await request.json();

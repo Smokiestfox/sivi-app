@@ -1,3 +1,4 @@
+import LogoutButton from "./LogoutButton";
 import Link from "next/link";
 import { getCurrentUser } from "@/server/auth/current-user";
 import StudentVerificationForm from "@/components/profile/StudentVerificationForm";
@@ -25,24 +26,15 @@ export default async function SiteHeader() {
               ) : user.role === "guest" ? (
                 <StudentVerificationForm />
               ) : null}
-              <button
-                type="button"
-                disabled
-                title="Đăng xuất sẽ khả dụng sau khi tích hợp auth backend."
-                className="rounded-full border border-[#dce4dd] px-4 py-2 text-sm font-bold text-[#64766e] opacity-60"
-              >
-                Đăng xuất
-              </button>
+              <LogoutButton />
             </>
           ) : (
-            <button
-              type="button"
-              disabled
-              title="Google OAuth chưa có route đăng nhập trên nhánh hiện tại."
-              className="rounded-full bg-[#187b5b] px-4 py-2 text-sm font-bold text-white opacity-70"
+            <a
+              href="/api/auth/google"
+              className="rounded-full bg-[#187b5b] px-4 py-2 text-sm font-bold text-white"
             >
               Đăng nhập
-            </button>
+            </a>
           )}
         </div>
       </div>
