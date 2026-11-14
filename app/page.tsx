@@ -21,13 +21,19 @@ async function loadRoommateFeed() {
   }
 }
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ authError?: string }> }) {
+  const { authError } = await searchParams;
   const result = await loadRoommateFeed();
   if (result.error) {
     return <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6"><ErrorState title="Chưa thể tải tin tìm chỗ ở">Dịch vụ đọc bài đang gặp sự cố. Vui lòng thử tải lại trang sau.</ErrorState></main>;
   }
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
+      {authError === "google_login_failed" && (
+        <p role="alert" className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">
+          Không thể đăng nhập bằng Google. Vui lòng thử lại.
+        </p>
+      )}
       <section className="rounded-3xl bg-[#eaf2eb] px-5 py-8 sm:px-10 sm:py-12">
         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#187b5b]">Cộng đồng sinh viên Làng Đại học</p>
         <h1 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-[#18352d] sm:text-5xl">Tìm chỗ ở tốt, gặp bạn cùng nhà hợp gu.</h1>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
 
 export default function StudentVerificationForm({
   initiallyOpen = false,
@@ -10,6 +11,45 @@ export default function StudentVerificationForm({
   triggerLabel?: string;
 }) {
   const [open, setOpen] = useState(initiallyOpen);
+
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [sentTo, setSentTo] = useState("");
+  const [otp, setOtp] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setMessage("");
+    try {
+      const response = await fetch(sentTo ? "/api/auth/otp/verify" : "/api/auth/otp/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(sentTo ? { email: sentTo, otp } : { email: email.trim() }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setError(result.error ?? "Không thể xác thực email. Vui lòng thử lại.");
+      } else if (sentTo) {
+        setOpen(false);
+        setSentTo("");
+        setOtp("");
+        router.refresh();
+      } else {
+        setSentTo(email.trim());
+        setMessage(result.message);
+      }
+    } catch {
+      setError("Không thể kết nối. Vui lòng thử lại.");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <>
@@ -50,18 +90,35 @@ export default function StudentVerificationForm({
                 ×
               </button>
             </div>
-            <p className="mt-4 text-sm leading-6 text-[#64766e]">
-              Luồng xác thực cần gửi và kiểm tra OTP qua dịch vụ backend. Các route
-              `/api/auth/otp/request` và `/api/auth/otp/verify` chưa có trên nhánh này,
-              nên chưa thể gửi mã hoặc thay đổi quyền tài khoản.
-            </p>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="mt-6 w-full rounded-xl bg-[#187b5b] px-4 py-3 font-bold text-white"
-            >
-              Đóng
-            </button>
+            <form onSubmit={submit} className="mt-4 grid gap-3">
+              {sentTo ? (
+                <label className="grid gap-1 text-sm">
+                  Mã OTP gửi đến {sentTo}
+                  <input required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}"
+                    maxLength={6} value={otp} onChange={(event) => setOtp(event.target.value)}
+                    className="rounded-xl border border-[#dce4dd] px-3 py-2" />
+                </label>
+              ) : (
+                <label className="grid gap-1 text-sm">
+                  Email trường
+                  <input required type="email" autoComplete="email" maxLength={254} value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="rounded-xl border border-[#dce4dd] px-3 py-2" />
+                </label>
+              )}
+              {message && <p role="status" className="text-sm">{message}</p>}
+              {error && <p role="alert" className="text-sm text-red-700">{error}</p>}
+              <button type="submit" disabled={busy}
+                className="w-full rounded-xl bg-[#187b5b] px-4 py-3 font-bold text-white disabled:opacity-60">
+                {busy ? "Đang xử lý…" : sentTo ? "Xác minh mã" : "Gửi mã OTP"}
+              </button>
+              {sentTo && (
+                <button type="button" disabled={busy} className="text-sm font-semibold text-[#187b5b]"
+                  onClick={() => { setSentTo(""); setOtp(""); setMessage(""); setError(""); }}>
+                  Đổi email hoặc gửi lại mã
+                </button>
+              )}
+            </form>
           </section>
         </div>
       )}

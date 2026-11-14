@@ -4,11 +4,10 @@
 `reports.status/resolvedBy/resolvedAt/resolutionNote` và `moderation_logs`.
 Không thêm bảng, notification hoặc cơ chế tự động gỡ khi đủ số báo cáo.
 
-## Điểm nối auth của Đạt
+## Xác thực quản trị
 
-`requireAdmin()` ngay trong `service.ts` là adapter chờ AUTH-01. Đạt thay phần thân
-bằng guard session thật, trả `{ id: number }` và chuyển lỗi thành `AdminError`
-401 (chưa đăng nhập) hoặc 403 (thiếu quyền). Hiện helper trả 503 `AUTH_NOT_READY`.
+`requireAdmin()` dùng guard session từ `server/auth/service.ts` và chuyển lỗi
+thành `AdminError` 401 (chưa đăng nhập) hoặc 403 (thiếu quyền).
 Cả `/admin` và API đều gọi guard trước khi đọc/ghi. Service còn kiểm tra lại role
 admin trong DB; dữ liệu từ client không quyết định quyền.
 

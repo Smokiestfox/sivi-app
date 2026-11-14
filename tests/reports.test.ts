@@ -211,9 +211,10 @@ describe("POST /api/reports", () => {
   });
 });
 
-describe("pending auth integration", () => {
-  it("fails closed until Đạt connects the real student guard", async () => {
+describe("report session guard", () => {
+  it("rejects a request without a session", async () => {
     const auth = await vi.importActual<typeof import("../server/reports/auth")>("../server/reports/auth");
-    await expect(auth.requireReportStudent()).rejects.toMatchObject({ status: 503, code: "AUTH_NOT_READY" });
+    await expect(auth.requireReportStudent(new Request("http://localhost:3000/api/reports")))
+      .rejects.toMatchObject({ status: 401, code: "UNAUTHENTICATED" });
   });
 });

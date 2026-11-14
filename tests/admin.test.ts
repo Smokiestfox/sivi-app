@@ -154,9 +154,9 @@ const context = (id = "10") => ({ params: Promise.resolve({ id }) });
 function request(body: unknown = { decision: "keep" }, headers: Record<string, string> = {}) {
   return new Request("http://localhost:3000/api/admin/reports/10", { method: "POST", headers: { origin: "http://localhost:3000", "content-type": "application/json", ...headers }, body: JSON.stringify(body) });
 }
-describe("admin route and auth handoff", () => {
-  it("fails closed before Đạt wires auth", async () => {
-    expect((await POST(request(), context())).status).toBe(503);
+describe("admin route and session guard", () => {
+  it("rejects a request without an admin session", async () => {
+    expect((await POST(request(), context())).status).toBe(401);
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
   it("uses the session admin id and invalidates admin/public pages", async () => {
