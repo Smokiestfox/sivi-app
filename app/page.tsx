@@ -34,12 +34,22 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           Không thể đăng nhập bằng Google. Vui lòng thử lại.
         </p>
       )}
-      <section className="rounded-3xl bg-[#eaf2eb] px-5 py-8 sm:px-10 sm:py-12">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#187b5b]">Cộng đồng sinh viên Làng Đại học</p>
-        <h1 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-[#18352d] sm:text-5xl">Tìm chỗ ở tốt, gặp bạn cùng nhà hợp gu.</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-[#53685f] sm:text-base">Khám phá tin tìm roommate, phòng ở và chia sẻ thông tin với cộng đồng sinh viên.</p>
+      <section className="community-hero" aria-labelledby="home-title">
+        <div className="community-hero-content">
+          <p className="community-hero-eyebrow">Cộng đồng sinh viên Làng Đại học</p>
+          <h1 id="home-title" className="community-hero-title">
+            Tìm chỗ ở tốt,<br className="hidden sm:block" /> gặp bạn cùng nhà hợp gu.
+          </h1>
+          <p className="community-hero-description">
+            Khám phá tin tìm roommate, phòng ở và chia sẻ thông tin với cộng đồng sinh viên.
+          </p>
+          <div className="community-hero-actions">
+            <a href="#roommate-feed" className="community-hero-primary">Tìm phòng ngay <span aria-hidden="true">→</span></a>
+            <a href="/review" className="community-hero-secondary">Khám phá địa điểm</a>
+          </div>
+        </div>
       </section>
-      <section className="mt-8" aria-label="Danh sách bài tìm roommate">
+      <section id="roommate-feed" className="mt-8 scroll-mt-24" aria-label="Danh sách bài tìm roommate">
         <PostList posts={result.items} type="roommate" user={result.user} />
       </section>
     </main>

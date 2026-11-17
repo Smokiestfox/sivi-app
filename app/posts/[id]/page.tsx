@@ -30,6 +30,7 @@ async function loadPost(rawId: string) {
     const comments = items.map((comment) => ({
       id: comment.id,
       authorName: comment.author.name,
+      authorId: comment.author.id,
       content: comment.content,
       createdAt: comment.createdAt,
       status: "active" as const,
@@ -51,7 +52,7 @@ export default async function PostPage({ params }: PostPageProps) {
   }
   if (!result.post) notFound();
   return (
-    <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 sm:py-12">
+    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
       <PostDetail post={result.post} comments={result.comments} user={result.user} />
     </main>
   );

@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import { districts } from "./options";
 import StudentVerificationForm from "@/components/profile/StudentVerificationForm";
 import { Toast } from "@/components/ui/Feedback";
 
@@ -32,6 +33,10 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
+  const [rent, setRent] = useState("");
+  const [area, setArea] = useState("");
+  const [district, setDistrict] = useState("");
+  const [otherDistrict, setOtherDistrict] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -174,7 +179,10 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor={`${formId}-address`} className={labelClass}>{type === "roommate" ? "Khu vực / địa chỉ" : "Địa chỉ địa điểm"}</label>
-              <input id={`${formId}-address`} name="address" maxLength={300} className={inputClass} disabled={busy} />
+              <input id={`${formId}-address`} name="address" list={`${formId}-address-options`} placeholder="Chọn gợi ý hoặc nhập địa chỉ cụ thể" maxLength={300} className={inputClass} disabled={busy} />
+              <datalist id={`${formId}-address-options`}>
+                {districts.map((name) => <option key={name} value={name} />)}
+              </datalist>
               {fieldError("address")}
             </div>
             <div>
@@ -186,12 +194,55 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
           {type === "roommate" ? (
             <>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><label htmlFor={`${formId}-rent`} className={labelClass}>Giá thuê mỗi tháng (đ) *</label><input id={`${formId}-rent`} name="rent" type="number" min="0" max="2000000000" step="1000" required className={inputClass} disabled={busy} />{fieldError("rent")}</div>
+                <div>
+                  <label htmlFor={`${formId}-rent`} className={labelClass}>Giá thuê mỗi tháng (đ) *</label>
+                  <input id={`${formId}-rent`} name="rent" type="number" min="0" max="2000000000" step="1000"
+                    required value={rent} onChange={(event) => setRent(event.target.value)} className={inputClass} disabled={busy} />
+                  <input type="range" aria-label="Chọn nhanh giá thuê" min="0" max="15000000" step="100000"
+                    value={Math.min(Number(rent) || 0, 15000000)} onChange={(event) => setRent(event.target.value)}
+                    disabled={busy} className="mt-3 w-full accent-[#187b5b]" />
+                  <div className="flex justify-between text-xs text-[#64766e]"><span>0 đ</span><span>15 triệu+</span></div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {[1, 2, 3, 5, 7, 10, 15].map((price) => (
+                      <button key={price} type="button" disabled={busy} onClick={() => setRent(String(price * 1000000))}
+                        className="rounded-full border border-[#dce4dd] px-3 py-1 text-xs text-[#187b5b] hover:bg-[#e7f3ed]">
+                        {price} triệu
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-[#64766e]">Giá trên 15 triệu: nhập số tiền vào ô phía trên.</p>
+                  {fieldError("rent")}
+                </div>
                 <div><label htmlFor={`${formId}-people`} className={labelClass}>Số người cần tìm *</label><input id={`${formId}-people`} name="peopleNeeded" type="number" min="1" max="20" required defaultValue="1" className={inputClass} disabled={busy} />{fieldError("peopleNeeded")}</div>
-                <div><label htmlFor={`${formId}-district`} className={labelClass}>Quận / huyện</label><input id={`${formId}-district`} name="district" maxLength={100} className={inputClass} disabled={busy} />{fieldError("district")}</div>
+                <div>
+                  <label htmlFor={`${formId}-district`} className={labelClass}>Khu vực / quận</label>
+                  <select id={`${formId}-district`} value={district} onChange={(event) => setDistrict(event.target.value)}
+                    className={inputClass} disabled={busy}>
+                    <option value="">Chọn khu vực</option>
+                    {districts.map((name) => <option key={name} value={name}>{name}</option>)}
+                    <option value="other">Khác</option>
+                  </select>
+                  <input type="hidden" name="district" value={district === "other" ? otherDistrict : district} />
+                  {district === "other" && <input aria-label="Tên khu vực khác" placeholder="Nhập khu vực khác"
+                    value={otherDistrict} onChange={(event) => setOtherDistrict(event.target.value)} maxLength={100}
+                    className={inputClass} disabled={busy} required />}
+                  {fieldError("district")}
+                </div>
                 <div><label htmlFor={`${formId}-room-type`} className={labelClass}>Loại phòng *</label><select id={`${formId}-room-type`} name="roomType" required defaultValue="" className={inputClass} disabled={busy}><option value="" disabled>Chọn loại phòng</option><option value="shared">Ở ghép</option><option value="private">Phòng riêng</option><option value="studio">Studio</option></select>{fieldError("roomType")}</div>
                 <div><label htmlFor={`${formId}-gender`} className={labelClass}>Ưu tiên giới tính</label><select id={`${formId}-gender`} name="genderPreference" defaultValue="any" className={inputClass} disabled={busy}><option value="any">Không yêu cầu</option><option value="male">Nam</option><option value="female">Nữ</option></select></div>
-                <div><label htmlFor={`${formId}-area`} className={labelClass}>Diện tích (m², không bắt buộc)</label><input id={`${formId}-area`} name="areaM2" type="number" min="0.01" max="9999.99" step="0.01" className={inputClass} disabled={busy} /></div>
+                <div>
+                  <label htmlFor={`${formId}-area`} className={labelClass}>Diện tích (m², không bắt buộc)</label>
+                  <input id={`${formId}-area`} name="areaM2" type="number" min="0.5" max="9999.5" step="0.5"
+                    value={area} onChange={(event) => setArea(event.target.value)} className={inputClass} disabled={busy} />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {[15, 20, 25, 30, 40, 50].map((size) => (
+                      <button key={size} type="button" disabled={busy} onClick={() => setArea(String(size))}
+                        className="rounded-full border border-[#dce4dd] px-3 py-1 text-xs text-[#187b5b] hover:bg-[#e7f3ed]">
+                        {size} m²
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
               <div><label htmlFor={`${formId}-contact`} className={labelClass}>Thông tin liên hệ (Zalo / email / số điện thoại)</label><input id={`${formId}-contact`} name="contactInfo" maxLength={255} className={inputClass} disabled={busy} /><p className="mt-1 text-xs text-[#819188]">Thông tin này sẽ được AI kiểm duyệt cùng nội dung bài.</p></div>
               <div><label htmlFor={`${formId}-amenities`} className={labelClass}>Tiện ích (phân cách bằng dấu phẩy)</label><input id={`${formId}-amenities`} name="amenities" placeholder="Wifi, máy giặt, chỗ để xe" className={inputClass} disabled={busy} /></div>

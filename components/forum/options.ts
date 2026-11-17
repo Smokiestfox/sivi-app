@@ -1,0 +1,1 @@
+export const districts = ["KTX Khu A", "KTX Khu B", "Linh Trung", "Linh Xuân", "Đông Hòa", "Bình An", "Bình Thắng", "Dĩ An", "An Bình", "Tân Đông Hiệp", "Bình Thọ", "Linh Chiểu", "Hiệp Phú", "Tăng Nhơn Phú", "Tân Phú", "Long Bình", "Long Thạnh Mỹ"];

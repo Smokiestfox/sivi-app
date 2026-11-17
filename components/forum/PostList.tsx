@@ -1,5 +1,7 @@
 "use client";
 
+import { districts } from "./options";
+
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -25,10 +27,21 @@ const placeLabels = {
   other: "Địa điểm khác",
 } as const;
 
+const priceRanges = [
+  { label: "Dưới 1 triệu", min: 0, max: 1000000 },
+  { label: "Từ 1 - 2 triệu", min: 1000000, max: 2000000 },
+  { label: "Từ 2 - 3 triệu", min: 2000000, max: 3000000 },
+  { label: "Từ 3 - 5 triệu", min: 3000000, max: 5000000 },
+  { label: "Từ 5 - 7 triệu", min: 5000000, max: 7000000 },
+  { label: "Từ 7 - 10 triệu", min: 7000000, max: 10000000 },
+  { label: "Từ 10 - 15 triệu", min: 10000000, max: 15000000 },
+  { label: "Trên 15 triệu", min: 15000000, max: Infinity },
+];
+
 export default function PostList({ posts, type, user }: PostListProps) {
   const [query, setQuery] = useState("");
   const [district, setDistrict] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
+  const [priceRange, setPriceRange] = useState("");
   const [roomType, setRoomType] = useState("");
   const [placeType, setPlaceType] = useState("");
   const [formOpen, setFormOpen] = useState(false);
@@ -40,7 +53,7 @@ export default function PostList({ posts, type, user }: PostListProps) {
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase("vi");
     const normalizedDistrict = district.trim().toLocaleLowerCase("vi");
-    const ceiling = maxPrice === "" ? null : Number(maxPrice);
+    const range = priceRange === "" ? null : priceRanges[Number(priceRange)];
     return posts.filter((post) => {
       if (normalizedQuery) {
         const text = [
@@ -53,14 +66,18 @@ export default function PostList({ posts, type, user }: PostListProps) {
         if (!text.includes(normalizedQuery)) return false;
       }
       if (type === "roommate" && post.type === "roommate") {
-        if (normalizedDistrict && !(post.district ?? "").toLocaleLowerCase("vi").includes(normalizedDistrict)) return false;
-        if (ceiling !== null && post.rent > ceiling) return false;
+        if (district === "other") {
+          if (districts.some((name) => name.toLocaleLowerCase("vi") === (post.district ?? "").trim().toLocaleLowerCase("vi"))) return false;
+        } else if (normalizedDistrict && !(post.district ?? "").toLocaleLowerCase("vi").includes(normalizedDistrict)) return false;
+        if (range && (post.rent < range.min || post.rent > range.max ||
+          (range.min === 0 && post.rent === range.max) ||
+          (range.max === Infinity && post.rent === range.min))) return false;
         if (roomType && post.roomType !== roomType) return false;
       }
       if (type === "review" && post.type === "review" && placeType && post.placeType !== placeType) return false;
       return true;
     });
-  }, [district, maxPrice, placeType, posts, query, roomType, type]);
+  }, [district, priceRange, placeType, posts, query, roomType, type]);
 
   function openComposer() {
     if (canPost) {
@@ -76,7 +93,7 @@ export default function PostList({ posts, type, user }: PostListProps) {
 
   return (
     <>
-      <div className="grid gap-3 rounded-3xl border border-[#e5e9e2] bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 rounded-3xl border border-[#d2dfd0] bg-[#e8efe7] p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
         <label className="sm:col-span-2 lg:col-span-2">
           <span className="sr-only">Tìm theo từ khóa hoặc địa điểm</span>
           <input
@@ -84,22 +101,31 @@ export default function PostList({ posts, type, user }: PostListProps) {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Tìm theo từ khóa hoặc địa điểm"
-            className="w-full rounded-full border border-[#dce4dd] px-4 py-3 text-sm outline-none focus:border-[#187b5b]"
+            className="w-full rounded-full border border-[#dce4dd] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#187b5b]"
           />
         </label>
         {type === "roommate" ? (
           <>
             <label>
               <span className="sr-only">Khu vực hoặc quận</span>
-              <input value={district} onChange={(event) => setDistrict(event.target.value)} placeholder="Khu vực / quận" className="w-full rounded-full border border-[#dce4dd] px-4 py-3 text-sm outline-none focus:border-[#187b5b]" />
+              <select value={district} onChange={(event) => setDistrict(event.target.value)}
+                className="w-full rounded-full border border-[#dce4dd] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#187b5b]">
+                <option value="">Tất cả khu vực</option>
+                {districts.map((name) => <option key={name} value={name}>{name}</option>)}
+                <option value="other">Khác</option>
+              </select>
             </label>
             <label>
-              <span className="sr-only">Giá thuê tối đa mỗi tháng</span>
-              <input type="number" min="0" value={maxPrice} onChange={(event) => setMaxPrice(event.target.value)} placeholder="Giá tối đa / tháng" className="w-full rounded-full border border-[#dce4dd] px-4 py-3 text-sm outline-none focus:border-[#187b5b]" />
+              <span className="sr-only">Khoảng giá thuê mỗi tháng</span>
+              <select value={priceRange} onChange={(event) => setPriceRange(event.target.value)}
+                className="w-full rounded-full border border-[#dce4dd] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#187b5b]">
+                <option value="">Tất cả khoảng giá</option>
+                {priceRanges.map((range, index) => <option key={range.label} value={index}>{range.label}</option>)}
+              </select>
             </label>
             <label className="lg:col-span-2">
               <span className="sr-only">Loại phòng</span>
-              <select value={roomType} onChange={(event) => setRoomType(event.target.value)} className="w-full rounded-full border border-[#dce4dd] bg-white px-4 py-3 text-sm outline-none focus:border-[#187b5b]">
+              <select value={roomType} onChange={(event) => setRoomType(event.target.value)} className="w-full rounded-full border border-[#dce4dd] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#187b5b]">
                 <option value="">Tất cả loại phòng</option>
                 {Object.entries(roomLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
@@ -108,7 +134,7 @@ export default function PostList({ posts, type, user }: PostListProps) {
         ) : (
           <label className="sm:col-span-2 lg:col-span-2">
             <span className="sr-only">Loại địa điểm</span>
-            <select value={placeType} onChange={(event) => setPlaceType(event.target.value)} className="w-full rounded-full border border-[#dce4dd] bg-white px-4 py-3 text-sm outline-none focus:border-[#187b5b]">
+            <select value={placeType} onChange={(event) => setPlaceType(event.target.value)} className="w-full rounded-full border border-[#dce4dd] bg-[#fffdf9] px-4 py-3 text-sm outline-none focus:border-[#187b5b]">
               <option value="">Tất cả loại địa điểm</option>
               {Object.entries(placeLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
@@ -137,7 +163,7 @@ export default function PostList({ posts, type, user }: PostListProps) {
             <Link
               key={post.id}
               href={`/posts/${post.id}`}
-              className="group overflow-hidden rounded-3xl border border-[#e5e9e2] bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group overflow-hidden rounded-3xl border border-[#dfdfd2] bg-[#fffefa] shadow-sm transition hover:-translate-y-0.5 hover:border-[#9cbaa6] hover:shadow-md"
             >
               {post.images[0] && (
                 <div className="relative h-52 bg-[#eef2ed]">

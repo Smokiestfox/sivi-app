@@ -28,10 +28,12 @@ export default async function ReviewPage() {
   }
   return (
     <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12">
-      <section className="rounded-3xl bg-[#eaf2eb] px-5 py-8 sm:px-10 sm:py-12">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#187b5b]">Khám phá quanh Làng Đại học</p>
-        <h1 className="mt-3 max-w-3xl text-3xl font-black leading-tight text-[#18352d] sm:text-5xl">Review địa điểm thật từ sinh viên</h1>
-        <p className="mt-4 max-w-2xl text-sm leading-6 text-[#53685f] sm:text-base">Tìm quán ăn, cafe và những địa điểm đáng thử qua trải nghiệm của cộng đồng SiVi.</p>
+      <section className="community-hero review-hero" aria-labelledby="review-title">
+        <div className="community-hero-content">
+          <p className="community-hero-eyebrow">Khám phá quanh Làng Đại học</p>
+          <h1 id="review-title" className="community-hero-title">Review địa điểm thật từ sinh viên</h1>
+          <p className="community-hero-description">Tìm quán ăn, cafe và những địa điểm đáng thử qua trải nghiệm của cộng đồng SiVi.</p>
+        </div>
       </section>
       <section className="mt-8" aria-label="Danh sách review địa điểm">
         <PostList posts={result.items} type="review" user={result.user} />
