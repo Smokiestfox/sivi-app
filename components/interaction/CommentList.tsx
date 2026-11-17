@@ -31,11 +31,15 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
 export default function CommentList({ comments, user = null, children }: CommentListProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [edited, setEdited] = useState<Record<number, string>>({});
   const [error, setError] = useState("");
   const [deletedIds, setDeletedIds] = useState<number[]>([]);
 
   async function removeComment(id: number) {
-    if (deleting !== null || !window.confirm("Xóa bình luận này?")) return;
+    if (saving || deleting !== null || !window.confirm("Xóa bình luận này?")) return;
     setDeleting(id);
     setError("");
     try {
@@ -51,6 +55,30 @@ export default function CommentList({ comments, user = null, children }: Comment
       setError("Không thể kết nối. Vui lòng thử lại.");
     } finally {
       setDeleting(null);
+    }
+  }
+
+  async function saveComment(id: number) {
+    if (saving || deleting !== null || !draft.trim()) return;
+    setSaving(true);
+    setError("");
+    try {
+      const response = await fetch(`/api/comments/${id}`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: draft.trim() }),
+      });
+      const result = await response.json();
+      if (!response.ok) {
+        setError(result.error?.message ?? "Không thể sửa bình luận. Vui lòng thử lại.");
+        return;
+      }
+      setEdited((items) => ({ ...items, [id]: draft.trim() }));
+      setEditingId(null);
+      router.refresh();
+    } catch {
+      setError("Không thể kết nối. Nội dung sửa vẫn được giữ lại.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -84,17 +112,37 @@ export default function CommentList({ comments, user = null, children }: Comment
                 </p>
                 <div className="flex items-center gap-3">
                   {user?.id !== undefined && user.id === comment.authorId && user.role === "student" && user.isVerified && (
-                    <button type="button" disabled={deleting !== null} onClick={() => removeComment(comment.id)}
+                    <>
+                    <button type="button" disabled={saving || deleting !== null}
+                      onClick={() => { setEditingId(comment.id); setDraft(edited[comment.id] ?? comment.content); setError(""); }}
+                      className="text-sm font-semibold text-[#187b5b]">Sửa</button>
+                    <button type="button" disabled={saving || deleting !== null} onClick={() => removeComment(comment.id)}
                       className="text-sm font-semibold text-red-700 disabled:opacity-50">
                       {deleting === comment.id ? "Đang xóa…" : "Xóa"}
                     </button>
+                    </>
                   )}
                   <ReportButton commentId={comment.id} user={user} />
                 </div>
               </div>
-              <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#53685f]">
-                {comment.content}
-              </p>
+              {editingId === comment.id ? (
+                <form className="mt-3" onSubmit={(event) => { event.preventDefault(); void saveComment(comment.id); }}>
+                  <label htmlFor={`edit-comment-${comment.id}`} className="sr-only">Sửa bình luận</label>
+                  <textarea id={`edit-comment-${comment.id}`} autoFocus required maxLength={2000} rows={3}
+                    disabled={saving} value={draft} onChange={(event) => setDraft(event.target.value)}
+                    className="w-full rounded-xl border border-[#dce4dd] bg-white p-3 text-sm" />
+                  <div className="mt-2 flex gap-3">
+                    <button type="submit" disabled={saving || !draft.trim()} className="rounded-lg bg-[#187b5b] px-3 py-2 text-sm text-white disabled:opacity-50">
+                      {saving ? "Đang kiểm duyệt…" : "Lưu"}
+                    </button>
+                    <button type="button" disabled={saving} onClick={() => setEditingId(null)} className="px-3 py-2 text-sm">Hủy</button>
+                  </div>
+                </form>
+              ) : (
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-[#53685f]">
+                  {edited[comment.id] ?? comment.content}
+                </p>
+              )}
               </div>
             </article>
           );

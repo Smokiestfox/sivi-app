@@ -1,3 +1,4 @@
+import PostOwnerActions from "./PostOwnerActions";
 import PostGallery from "./PostGallery";
 import Link from "next/link";
 import type { PostDto } from "@/server/posts/service";
@@ -47,6 +48,7 @@ export default function PostDetail({ post, comments, user }: PostDetailProps) {
           </time>
         </div>
         <h1 className="mt-4 text-2xl font-bold leading-snug tracking-tight text-[#18352d] sm:text-4xl">{post.title}</h1>
+        {user?.id === post.author.id && user.role === "student" && user.isVerified && <PostOwnerActions post={post} />}
         {post.type === "review" && (
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <p className="text-2xl font-bold text-[#d98242]">{"★".repeat(post.rating)}{"☆".repeat(5 - post.rating)}</p>
