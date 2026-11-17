@@ -1,4 +1,4 @@
-import Image from "next/image";
+import PostGallery from "./PostGallery";
 import Link from "next/link";
 import type { PostDto } from "@/server/posts/service";
 import type { CurrentUser } from "@/server/auth/current-user";
@@ -36,15 +36,7 @@ export default function PostDetail({ post, comments, user }: PostDetailProps) {
       </Link>
       <div className="post-layout">
       <div className="post-main-card">
-        {post.images.length > 0 && (
-          <div className={`post-gallery grid gap-3 ${post.images.length > 1 ? "sm:grid-cols-2" : ""}`}>
-            {post.images.map((image) => (
-              <div key={image.id} className={post.images.length === 1 ? "relative aspect-[16/9] max-h-[380px] overflow-hidden bg-[#eef2ed]" : "relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#eef2ed]"}>
-                <Image src={image.url} alt={image.altText ?? post.title} fill sizes={post.images.length === 1 ? "(max-width: 900px) 100vw, 850px" : "(max-width: 640px) 100vw, 425px"} className="object-cover object-top" />
-              </div>
-            ))}
-          </div>
-        )}
+        <PostGallery images={post.images} title={post.title} />
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-[#e7f3ed] px-3 py-1 text-xs font-bold text-[#187b5b]">
             {post.type === "roommate" ? roomLabels[post.roomType] : placeLabels[post.placeType]}
