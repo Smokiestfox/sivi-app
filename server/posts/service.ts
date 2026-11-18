@@ -108,18 +108,21 @@ async function removeAfterRollback(deps: ForumDependencies, keys: string[]) {
 async function withImages<T>(
   deps: ForumDependencies,
   files: File[],
-  write: (images: StoredImage[]) => Promise<T>,
+  moderate: (images: StoredImage[]) => ReturnType<typeof approve>,
+  write: (images: StoredImage[], log: Awaited<ReturnType<typeof approve>>) => Promise<T>,
 ) {
   const images: StoredImage[] = [];
+  let log: Awaited<ReturnType<typeof approve>>;
   try {
     for (const file of files) images.push(await deps.saveImage(file));
+    log = await moderate(images);
   } catch (error) {
     await removeFiles(deps, images.map(({ storageKey }) => storageKey));
     throw error;
   }
 
   try {
-    return await write(images);
+    return await write(images, log);
   } catch (error) {
     await removeAfterRollback(deps, images.map(({ storageKey }) => storageKey));
     throw error;
@@ -132,19 +135,29 @@ async function writtenPost(tx: ForumTransaction, id: number, viewerId: number) {
   return post;
 }
 
+async function approvePost(deps: ForumDependencies, payload: PostPayload, images: StoredImage[], postId?: number) {
+  const describe = deps.describeImage;
+  const imageDescriptions = describe && images.length ? await Promise.all(images.map(describe)) : undefined;
+  return approve(deps, {
+    contentType: "post",
+    ...(postId === undefined ? {} : { postId }),
+    ...moderationText(payload),
+    ...(imageDescriptions ? { imageDescriptions } : {}),
+  });
+}
+
 export async function createPost(deps: ForumDependencies, actor: ForumActor, payload: PostPayload, files: File[]) {
   requireStudent(actor);
-  const log = await approve(deps, { contentType: "post", ...moderationText(payload) });
-
-  return withImages(deps, files, (images) => db.transaction(async (tx) => {
-    const [{ id }] = await tx.insert(posts).values({
-      ...commonFields(payload), postType: payload.type, authorId: actor.id,
-    }).returning({ id: posts.id });
-    await writeSubtype(tx, id, payload);
-    await writeImages(tx, id, images, 0);
-    await tx.insert(moderationLogs).values({ ...log, contentType: "post", postId: id });
-    return writtenPost(tx, id, actor.id);
-  }));
+  return withImages(deps, files, (images) => approvePost(deps, payload, images),
+    (images, log) => db.transaction(async (tx) => {
+      const [{ id }] = await tx.insert(posts).values({
+        ...commonFields(payload), postType: payload.type, authorId: actor.id,
+      }).returning({ id: posts.id });
+      await writeSubtype(tx, id, payload);
+      await writeImages(tx, id, images, 0);
+      await tx.insert(moderationLogs).values({ ...log, contentType: "post", postId: id });
+      return writtenPost(tx, id, actor.id);
+    }));
 }
 
 export async function updatePost(
@@ -161,39 +174,38 @@ export async function updatePost(
   if (before.type !== payload.type) {
     throw new ForumError("VALIDATION_ERROR", "Không thể đổi loại bài.");
   }
-  const log = await approve(deps, { contentType: "post", postId: id, ...moderationText(payload) });
-
-  const { post, removedKeys } = await withImages(deps, files, (images) => db.transaction(async (tx) => {
-    const locked = await lockActivePost(tx, id);
-    assertOwner(locked, actor);
-    if (locked.revision !== before.revision) {
-      throw new ForumError("CONFLICT", "Bài đăng đã thay đổi. Hãy tải lại trước khi sửa.");
-    }
-
-    const existing = await tx.select().from(postImages).where(eq(postImages.postId, id))
-      .orderBy(asc(postImages.sortOrder));
-    const keep = new Set(keepImageIds);
-    const retained = existing.filter((image) => keep.has(image.id));
-    if (retained.length !== keep.size) {
-      throw new ForumError("VALIDATION_ERROR", "Có ảnh giữ lại không thuộc bài đăng.");
-    }
-
-    const removed = existing.filter((image) => !keep.has(image.id));
-    if (removed.length) {
-      await tx.delete(postImages).where(inArray(postImages.id, removed.map((image) => image.id)));
-    }
-    // Close gaps from left to right after deleting dropped rows, without colliding with the unique order.
-    for (const [sortOrder, image] of retained.entries()) {
-      if (image.sortOrder !== sortOrder) {
-        await tx.update(postImages).set({ sortOrder }).where(eq(postImages.id, image.id));
+  const { post, removedKeys } = await withImages(deps, files, (images) => approvePost(deps, payload, images, id),
+    (images, log) => db.transaction(async (tx) => {
+      const locked = await lockActivePost(tx, id);
+      assertOwner(locked, actor);
+      if (locked.revision !== before.revision) {
+        throw new ForumError("CONFLICT", "Bài đăng đã thay đổi. Hãy tải lại trước khi sửa.");
       }
-    }
-    await tx.update(posts).set({ ...commonFields(payload), updatedAt: new Date() }).where(eq(posts.id, id));
-    await writeSubtype(tx, id, payload);
-    await writeImages(tx, id, images, retained.length);
-    await tx.insert(moderationLogs).values({ ...log, contentType: "post", postId: id });
-    return { post: await writtenPost(tx, id, actor.id), removedKeys: removed.map((image) => image.storageKey) };
-  }));
+
+      const existing = await tx.select().from(postImages).where(eq(postImages.postId, id))
+        .orderBy(asc(postImages.sortOrder));
+      const keep = new Set(keepImageIds);
+      const retained = existing.filter((image) => keep.has(image.id));
+      if (retained.length !== keep.size) {
+        throw new ForumError("VALIDATION_ERROR", "Có ảnh giữ lại không thuộc bài đăng.");
+      }
+
+      const removed = existing.filter((image) => !keep.has(image.id));
+      if (removed.length) {
+        await tx.delete(postImages).where(inArray(postImages.id, removed.map((image) => image.id)));
+      }
+      // Close gaps from left to right after deleting dropped rows, without colliding with the unique order.
+      for (const [sortOrder, image] of retained.entries()) {
+        if (image.sortOrder !== sortOrder) {
+          await tx.update(postImages).set({ sortOrder }).where(eq(postImages.id, image.id));
+        }
+      }
+      await tx.update(posts).set({ ...commonFields(payload), updatedAt: new Date() }).where(eq(posts.id, id));
+      await writeSubtype(tx, id, payload);
+      await writeImages(tx, id, images, retained.length);
+      await tx.insert(moderationLogs).values({ ...log, contentType: "post", postId: id });
+      return { post: await writtenPost(tx, id, actor.id), removedKeys: removed.map((image) => image.storageKey) };
+    }));
 
   await removeFiles(deps, removedKeys);
   return post;

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
-import { listReportQueue, resolveReportCluster } from "../server/admin/service";
+import { listFlaggedContent, listReportQueue, resolveReportCluster } from "../server/admin/service";
 import { createReport } from "../server/reports/service";
-import { comments, posts, reports, reviewPosts, users } from "../server/db/schema";
+import { comments, moderationLogs, posts, reports, reviewPosts, users } from "../server/db/schema";
 import { listComments } from "../server/comments/service";
 import { getPost } from "../server/posts/service";
 import { actors, forumDatabase, hasTestDatabase, testDb, testPool } from "./fixtures/forum";
@@ -35,6 +35,23 @@ describe.skipIf(!hasTestDatabase)("Admin transactions on PostgreSQL", () => {
     const history = await listReportQueue(adminId, "processed");
     expect(history[0].reports.every((row) => row.status === "resolved_keep" && row.resolutionNote === "Đã kiểm tra")).toBe(true);
     expect(await getPost(postId)).not.toBeNull();
+  });
+
+  it("shows AI scores and only flags the latest scan of each visible target", async () => {
+    const [comment] = await testDb.insert(comments).values({
+      postId, authorId: actors.student.id, content: "Bình luận cần xem lại",
+    }).returning({ id: comments.id });
+    const scan = { result: "approved", modelVersion: "test", policyVersion: "test" } as const;
+    await testDb.insert(moderationLogs).values([
+      { ...scan, contentType: "post", postId, needsReview: true, scannedAt: new Date(1000) },
+      { ...scan, contentType: "post", postId, needsReview: false, labels: { violence: 0.01 }, scannedAt: new Date(2000) },
+      { ...scan, contentType: "comment", commentId: comment.id, needsReview: true, labels: { ragebait: 0.8, tags: ["ragebait"] } },
+    ]);
+    await expect(listFlaggedContent(actors.student.id)).rejects.toMatchObject({ status: 403 });
+    expect(await listReportQueue(adminId)).toMatchObject([{ moderation: { labels: { violence: 0.01 } } }]);
+    expect(await listFlaggedContent(adminId)).toMatchObject([{ postId, commentId: comment.id, labels: { ragebait: 0.8 } }]);
+    await resolveReportCluster(adminId, reportId, { decision: "remove" });
+    expect(await listFlaggedContent(adminId)).toEqual([]);
   });
 
   it("hides a post from the real public reader and records both report decisions", async () => {

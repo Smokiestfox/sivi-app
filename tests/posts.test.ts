@@ -84,7 +84,8 @@ describe("forum write boundary", () => {
     expect((await POST(multipart(roommate, { files: [image("one")] }))).status).toBe(422);
     expect((await POST(multipart(roommate))).status).toBe(503);
     expect((await POST(multipart(roommate))).status).toBe(503);
-    expect(deps.saveImage).not.toHaveBeenCalled();
+    expect(deps.saveImage).toHaveBeenCalledTimes(1);
+    expect(deps.removeImage).toHaveBeenCalledTimes(1);
   });
 });
 

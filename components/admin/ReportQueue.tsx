@@ -1,5 +1,7 @@
 "use client";
 
+import ModerationScores from "./ModerationScores";
+
 import { useRouter } from "next/navigation";
 import { useRef, useState, useTransition } from "react";
 import { Button, Card, Empty, Input, Tag } from "antd";
@@ -97,6 +99,7 @@ export default function ReportQueue({ items, status }: ReportQueueProps) {
                 <p className="mt-3 whitespace-pre-wrap break-words rounded-xl bg-[#f7f8f5] p-4 text-sm leading-6 text-[#18352d]">{item.target.content}</p>
                 <p className="mt-3 text-sm text-[#36564a]"><strong>Chủ nội dung:</strong> {item.target.authorName}</p>
                 {moderation && <p className="mt-2 text-sm text-[#64766e]">Kiểm duyệt: {moderation.reason || "Không có ghi chú"} · Model {moderation.modelVersion} · {formatDate(moderation.scannedAt)}</p>}
+                <ModerationScores labels={moderation?.labels} />
                 <ul className="mt-4 space-y-3 border-t border-[#edf0eb] pt-4">
                   {item.reports.map((report) => (
                     <li key={report.id} className="text-sm text-[#53685f]">

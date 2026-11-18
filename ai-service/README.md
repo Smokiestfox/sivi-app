@@ -2,6 +2,9 @@
 
 FastAPI service độc lập cho AI moderation.
 
+SiVi hiện gọi Laya Multilingual trực tiếp từ Next.js. Xem
+[cấu hình và test kiểm duyệt](../server/moderation/README.md).
+
 ## Chạy local
 
 ~~~bash

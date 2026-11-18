@@ -63,6 +63,7 @@ export interface ReportQueueItem {
     modelVersion: string;
     policyVersion: string;
     scannedAt: string;
+    labels?: typeof moderationLogs.$inferSelect.labels;
   } | null;
 }
 
@@ -142,7 +143,7 @@ export async function listReportQueue(adminId: number, status: QueueStatus = "pe
     postId: moderationLogs.postId, commentId: moderationLogs.commentId,
     result: moderationLogs.result, needsReview: moderationLogs.needsReview, reason: moderationLogs.reason,
     modelVersion: moderationLogs.modelVersion, policyVersion: moderationLogs.policyVersion,
-    scannedAt: moderationLogs.scannedAt,
+    scannedAt: moderationLogs.scannedAt, labels: moderationLogs.labels,
   }).from(moderationLogs).where(or(
     postIds.length ? and(eq(moderationLogs.contentType, "post"), inArray(moderationLogs.postId, postIds)) : undefined,
     commentIds.length ? and(eq(moderationLogs.contentType, "comment"), inArray(moderationLogs.commentId, commentIds)) : undefined,
@@ -155,10 +156,42 @@ export async function listReportQueue(adminId: number, status: QueueStatus = "pe
         result: log.result, needsReview: log.needsReview, reason: log.reason,
         modelVersion: log.modelVersion, policyVersion: log.policyVersion,
         scannedAt: log.scannedAt.toISOString(),
+        labels: log.labels,
       };
     }
   }
   return items;
+}
+
+export async function listFlaggedContent(adminId: number) {
+  await assertAdmin(db, adminId);
+  const latest = db.selectDistinctOn([moderationLogs.postId, moderationLogs.commentId], {
+    logId: moderationLogs.id,
+    postId: moderationLogs.postId,
+    commentId: moderationLogs.commentId,
+    needsReview: moderationLogs.needsReview,
+    labels: moderationLogs.labels,
+    scannedAt: moderationLogs.scannedAt,
+    modelVersion: moderationLogs.modelVersion,
+  }).from(moderationLogs).orderBy(
+    moderationLogs.postId, moderationLogs.commentId, desc(moderationLogs.scannedAt), desc(moderationLogs.id),
+  ).as("latest_moderation");
+
+  return db.select({
+    logId: latest.logId,
+    postId: posts.id,
+    commentId: latest.commentId,
+    title: posts.title,
+    content: sql<string>`coalesce(${comments.content}, ${posts.content})`,
+    labels: latest.labels,
+    scannedAt: latest.scannedAt,
+    modelVersion: latest.modelVersion,
+  }).from(latest)
+    .leftJoin(comments, eq(comments.id, latest.commentId))
+    .innerJoin(posts, eq(posts.id, sql<number>`coalesce(${latest.postId}, ${comments.postId})`))
+    .where(and(eq(latest.needsReview, true), eq(posts.status, "active"),
+      or(eq(comments.status, "active"), eq(posts.id, latest.postId))))
+    .orderBy(desc(latest.scannedAt), desc(latest.logId)).limit(50);
 }
 
 const decisionSchema = z.object({

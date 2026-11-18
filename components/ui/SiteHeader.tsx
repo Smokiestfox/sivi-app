@@ -15,6 +15,7 @@ export default async function SiteHeader() {
         <nav aria-label="Điều hướng chính" className="order-3 flex w-full items-center gap-5 overflow-x-auto text-sm font-semibold text-[#36564a] sm:order-none sm:w-auto">
           <Link href="/" className="whitespace-nowrap hover:text-[#187b5b]">Tìm chỗ ở</Link>
           <Link href="/review" className="whitespace-nowrap hover:text-[#187b5b]">Review địa điểm</Link>
+          {user && <Link href="/profile" className="whitespace-nowrap hover:text-[#187b5b]">Nội dung của tôi</Link>}
           {user?.role === "admin" && <Link href="/admin" className="whitespace-nowrap hover:text-[#187b5b]">Quản trị</Link>}
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:ml-0">

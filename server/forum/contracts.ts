@@ -15,6 +15,7 @@ export type ModerationInput = {
   commentId?: number;
   title: string;
   body: string;
+  imageDescriptions?: string[];
 };
 
 export type ModerationDecision =
@@ -41,5 +42,6 @@ export interface ForumDependencies {
   getActor(request: Request): Promise<ForumActor | null>;
   moderate(input: ModerationInput): Promise<ModerationDecision>;
   saveImage(file: File): Promise<StoredImage>;
+  describeImage?(image: StoredImage): Promise<string>;
   removeImage(storageKey: string): Promise<void>;
 }

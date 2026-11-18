@@ -1,0 +1,9 @@
+.git
+.env*
+.next
+node_modules
+storage
+coverage
+**/__pycache__
+**/.venv
+*.tsbuildinfo

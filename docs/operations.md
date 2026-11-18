@@ -1,6 +1,6 @@
 # Vận hành & triển khai SiVi
 
-**Mô hình demo:** PostgreSQL và AI trong Docker Compose; Next.js chạy trên máy host.
+**Mô hình demo** dùng PostgreSQL trong Docker Compose và Next.js trên máy host gọi Laya riêng.
 
 ## 1. Môi trường
 
@@ -8,7 +8,7 @@
 |---|---|
 | Next.js | `npm run dev` trên máy host |
 | PostgreSQL | Docker Compose, cổng 5432 |
-| AI | Docker Compose, cổng 8100 |
+| AI | Laya Multilingual, cổng host 9002 |
 | Ảnh | Thư mục `storage/` trên máy host |
 
 ## 2. Biến môi trường
@@ -23,8 +23,8 @@
 | SMTP_URL | Có | SMTP gửi OTP |
 | EMAIL_FROM | Có | Địa chỉ gửi |
 | OTP_SECRET | Có | Khóa bí mật tối thiểu 32 byte để HMAC mã OTP |
-| AI_MODERATION_URL | Có | URL Python AI service |
-| AI_MODERATION_API_KEY | Không | Bearer token nếu AI service yêu cầu |
+| LAYA_URL | Có | Base URL của Laya |
+| LAYA_API_KEY | Có | Bearer token của Laya |
 | STORAGE_DIR | Có | Thư mục ảnh local |
 | MAX_UPLOAD_BYTES | Không | Mặc định 5 MB |
 
@@ -36,7 +36,7 @@ Trong Google Cloud Console, đăng ký redirect URI `http://localhost:3000/api/a
 
 ~~~powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-docker compose up -d
+docker compose up -d postgres
 npm ci
 npm run db:migrate
 npm run dev
@@ -46,7 +46,7 @@ Kiểm tra:
 
 ~~~bash
 curl http://127.0.0.1:3000/api/health
-curl http://127.0.0.1:8100/health
+curl http://127.0.0.1:9002/health
 ~~~
 
 ## 4. Database
@@ -57,12 +57,11 @@ curl http://127.0.0.1:8100/health
 
 ## 5. AI service
 
-- Chạy container FastAPI, cổng nội bộ 8100.
-- Health: GET /health.
-- Model Laya load lúc khởi động; nếu load lỗi, container không healthy.
+- Next.js gọi Laya trực tiếp qua `POST /v1/systemone` với model `multilingual`.
+- Kiểm tra kết nối qua `GET /health` trên Laya.
 - Timeout phía Next: 10 giây.
 - AI lỗi/timeout: fail closed, trả 503, không lưu bài.
-- Log request id, model version, latency, kết quả policy.
+- Log lượt bị từ chối hoặc lỗi và thời gian xử lý.
 - Không log toàn bộ nội dung người dùng ở production.
 
 ## 6. Ảnh
