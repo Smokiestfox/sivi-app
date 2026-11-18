@@ -12,6 +12,7 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=1416 STORAGE_DIR=/app/sto
 COPY --from=build --chown=node:node /app/package.json ./
 COPY --from=build --chown=node:node /app/node_modules ./node_modules
 COPY --from=build --chown=node:node /app/.next ./.next
+COPY --from=build --chown=node:node /app/public ./public
 COPY --from=build --chown=node:node /app/server/db/migrations ./server/db/migrations
 COPY --from=build --chown=node:node /app/scripts/migrate.mjs ./scripts/migrate.mjs
 RUN mkdir -p /app/storage && chown node:node /app/storage
