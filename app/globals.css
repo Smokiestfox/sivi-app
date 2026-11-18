@@ -201,3 +201,4 @@ body:has(.post-image-dialog[open]) { overflow: hidden; }
 .post-collage-5 { grid-template-columns: repeat(6,minmax(0,1fr)); grid-template-rows: repeat(2,minmax(0,1fr)); }
 .post-collage-5 > :nth-child(-n+2) { grid-column: span 3; }
 .post-collage-5 > :nth-child(n+3) { grid-column: span 2; }
+.profile-comments .post-comments { max-width: none; margin-top: 12px; }

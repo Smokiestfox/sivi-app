@@ -20,7 +20,7 @@ export default async function SiteHeader() {
         <div className="ml-auto flex items-center gap-2 sm:ml-0">
           {user ? (
             <>
-              <span className="max-w-32 truncate text-sm font-semibold text-[#36564a] sm:max-w-48">{user.name}</span>
+              <Link href="/profile" className="max-w-32 truncate text-sm font-semibold text-[#36564a] hover:text-[#187b5b] sm:max-w-48">{user.name}</Link>
               {user.role === "student" && user.isVerified ? (
                 <span className="rounded-full bg-[#e7f3ed] px-3 py-1 text-xs font-bold text-[#187b5b]">Sinh viên</span>
               ) : user.role === "guest" ? (
