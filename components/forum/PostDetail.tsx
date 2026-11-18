@@ -1,3 +1,4 @@
+import { StarRating } from "@/components/ui/StarRating";
 import PostOwnerActions from "./PostOwnerActions";
 import PostGallery from "./PostGallery";
 import Link from "next/link";
@@ -51,8 +52,7 @@ export default function PostDetail({ post, comments, user }: PostDetailProps) {
         {user?.id === post.author.id && user.role === "student" && user.isVerified && <PostOwnerActions post={post} />}
         {post.type === "review" && (
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <p className="text-2xl font-bold text-[#d98242]">{"★".repeat(post.rating)}{"☆".repeat(5 - post.rating)}</p>
-            <span className="font-bold text-[#36564a]">{post.rating}/5</span>
+            <StarRating value={post.rating} />
             <span className="text-sm text-[#64766e]">{post.placeName}</span>
           </div>
         )}
@@ -100,9 +100,9 @@ export default function PostDetail({ post, comments, user }: PostDetailProps) {
             <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Loại địa điểm</dt><dd className="mt-1 font-semibold text-[#18352d]">{placeLabels[post.placeType]}</dd></div>
             <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Địa chỉ</dt><dd className="mt-1 font-semibold text-[#18352d]">{post.address || "Chưa cung cấp"}</dd></div>
             <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Mức giá</dt><dd className="mt-1 font-semibold text-[#18352d]">{post.priceRange === "low" ? "Bình dân" : post.priceRange === "medium" ? "Trung bình" : "Cao"}{post.referencePrice !== null ? ` · khoảng ${money.format(post.referencePrice)} đ` : ""}</dd></div>
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Wifi</dt><dd className="mt-1 font-semibold text-[#18352d]">{post.wifiRating === null ? "Chưa đánh giá" : `${post.wifiRating}/5`}</dd></div>
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Không gian</dt><dd className="mt-1 font-semibold text-[#18352d]">{post.atmosphereRating === null ? "Chưa đánh giá" : `${post.atmosphereRating}/5`}</dd></div>
-            <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Phục vụ</dt><dd className="mt-1 font-semibold text-[#18352d]">{post.serviceRating === null ? "Chưa đánh giá" : `${post.serviceRating}/5`}</dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Wifi</dt><dd className="mt-1 font-semibold text-[#18352d]"><StarRating value={post.wifiRating} /></dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Không gian</dt><dd className="mt-1 font-semibold text-[#18352d]"><StarRating value={post.atmosphereRating} /></dd></div>
+            <div><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Phục vụ</dt><dd className="mt-1 font-semibold text-[#18352d]"><StarRating value={post.serviceRating} /></dd></div>
             {post.experience && <div className=""><dt className="text-xs font-semibold uppercase tracking-wide text-[#819188]">Trải nghiệm</dt><dd className="mt-1 whitespace-pre-wrap text-[#36564a]">{post.experience}</dd></div>}
           </dl>
         )}

@@ -9,7 +9,7 @@ import { getMaxUploadBytes, MAX_POST_IMAGES } from "../uploads/limits";
 const text = (max: number) => z.string().trim().min(1).max(max);
 const optionalText = (max: number) => z.string().trim().max(max).nullish();
 const money = z.number().min(0).max(2_000_000_000);
-const rating = z.number().int().min(1).max(5);
+const rating = z.number().min(0.5).max(5).multipleOf(0.5);
 const common = {
   title: text(120),
   content: text(5_000),

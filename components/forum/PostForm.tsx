@@ -3,6 +3,7 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import type { PostDto } from "@/server/posts/service";
+import { StarRatingInput } from "@/components/ui/StarRating";
 import { districts } from "./options";
 import StudentVerificationForm from "@/components/profile/StudentVerificationForm";
 import { Toast } from "@/components/ui/Feedback";
@@ -40,6 +41,7 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
   const initialDistrict = existingPost?.type === "roommate" ? existingPost.district ?? "" : "";
   const [district, setDistrict] = useState(initialDistrict && !districts.includes(initialDistrict) ? "other" : initialDistrict);
   const [otherDistrict, setOtherDistrict] = useState(initialDistrict);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [keepImageIds, setKeepImageIds] = useState(existingPost?.images.map((image) => image.id) ?? []);
   const initial: Record<string, unknown> = existingPost ? { ...existingPost } : {};
   function initialValue(name: string, fallback = "") {
@@ -60,7 +62,6 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
     setError("");
     setFieldErrors({});
     const data = new FormData(form);
-    const imageFiles = data.getAll("images").filter((file): file is File => file instanceof File && file.size > 0);
     if (imageFiles.length + keepImageIds.length > 5) {
       setError("Mỗi bài chỉ được đính kèm tối đa 5 ảnh.");
       return;
@@ -177,12 +178,12 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
 
         <form ref={formRef} onSubmit={submit} aria-busy={busy} className="mt-6 space-y-5">
           <div>
-            <label htmlFor={`${formId}-title-field`} className={labelClass}>Tiêu đề *</label>
+            <label htmlFor={`${formId}-title-field`} className={labelClass}>Tiêu đề <span aria-hidden="true" className="text-red-600">*</span></label>
             <input id={`${formId}-title-field`} name="title" defaultValue={initialValue("title")} required maxLength={120} className={inputClass} disabled={busy} />
             {fieldError("title")}
           </div>
           <div>
-            <label htmlFor={`${formId}-content`} className={labelClass}>{type === "roommate" ? "Mô tả *" : "Nội dung review *"}</label>
+            <label htmlFor={`${formId}-content`} className={labelClass}>{type === "roommate" ? "Mô tả" : "Nội dung review"} <span aria-hidden="true" className="text-red-600">*</span></label>
             <textarea id={`${formId}-content`} name="content" defaultValue={initialValue("content")} required minLength={1} maxLength={5000} rows={5} className={inputClass} disabled={busy} />
             {fieldError("content")}
           </div>
@@ -196,7 +197,7 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
               {fieldError("address")}
             </div>
             <div>
-              <label htmlFor={`${formId}-maps`} className={labelClass}>Link Google Maps (không bắt buộc)</label>
+              <label htmlFor={`${formId}-maps`} className={labelClass}>Link Google Maps</label>
               <input id={`${formId}-maps`} name="googleMapsUrl" defaultValue={initialValue("googleMapsUrl")} type="url" className={inputClass} disabled={busy} />
             </div>
           </div>
@@ -205,7 +206,7 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
             <>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor={`${formId}-rent`} className={labelClass}>Giá thuê mỗi tháng (đ) *</label>
+                  <label htmlFor={`${formId}-rent`} className={labelClass}>Giá thuê mỗi tháng (đ) <span aria-hidden="true" className="text-red-600">*</span></label>
                   <input id={`${formId}-rent`} name="rent" type="number" min="0" max="2000000000" step="1000"
                     required value={rent} onChange={(event) => setRent(event.target.value)} className={inputClass} disabled={busy} />
                   <input type="range" aria-label="Chọn nhanh giá thuê" min="0" max="15000000" step="100000"
@@ -223,7 +224,7 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
                   <p className="mt-2 text-xs text-[#64766e]">Giá trên 15 triệu: nhập số tiền vào ô phía trên.</p>
                   {fieldError("rent")}
                 </div>
-                <div><label htmlFor={`${formId}-people`} className={labelClass}>Số người cần tìm *</label><input id={`${formId}-people`} name="peopleNeeded" type="number" min="1" max="20" required defaultValue={initialValue("peopleNeeded", "1")} className={inputClass} disabled={busy} />{fieldError("peopleNeeded")}</div>
+                <div><label htmlFor={`${formId}-people`} className={labelClass}>Số người cần tìm <span aria-hidden="true" className="text-red-600">*</span></label><input id={`${formId}-people`} name="peopleNeeded" type="number" min="1" max="20" required defaultValue={initialValue("peopleNeeded", "1")} className={inputClass} disabled={busy} />{fieldError("peopleNeeded")}</div>
                 <div>
                   <label htmlFor={`${formId}-district`} className={labelClass}>Khu vực / quận</label>
                   <select id={`${formId}-district`} value={district} onChange={(event) => setDistrict(event.target.value)}
@@ -233,15 +234,20 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
                     <option value="other">Khác</option>
                   </select>
                   <input type="hidden" name="district" value={district === "other" ? otherDistrict : district} />
-                  {district === "other" && <input aria-label="Tên khu vực khác" placeholder="Nhập khu vực khác"
-                    value={otherDistrict} onChange={(event) => setOtherDistrict(event.target.value)} maxLength={100}
-                    className={inputClass} disabled={busy} required />}
+                  {district === "other" && (
+                    <div className="mt-3">
+                      <label htmlFor={`${formId}-other-district`} className={labelClass}>Tên khu vực khác <span aria-hidden="true" className="text-red-600">*</span></label>
+                      <input id={`${formId}-other-district`} placeholder="Nhập khu vực khác"
+                        value={otherDistrict} onChange={(event) => setOtherDistrict(event.target.value)} maxLength={100}
+                        className={inputClass} disabled={busy} required />
+                    </div>
+                  )}
                   {fieldError("district")}
                 </div>
-                <div><label htmlFor={`${formId}-room-type`} className={labelClass}>Loại phòng *</label><select id={`${formId}-room-type`} name="roomType" required defaultValue={initialValue("roomType", "")} className={inputClass} disabled={busy}><option value="" disabled>Chọn loại phòng</option><option value="shared">Ở ghép</option><option value="private">Phòng riêng</option><option value="studio">Studio</option></select>{fieldError("roomType")}</div>
+                <div><label htmlFor={`${formId}-room-type`} className={labelClass}>Loại phòng <span aria-hidden="true" className="text-red-600">*</span></label><select id={`${formId}-room-type`} name="roomType" required defaultValue={initialValue("roomType", "")} className={inputClass} disabled={busy}><option value="" disabled>Chọn loại phòng</option><option value="shared">Ở ghép</option><option value="private">Phòng riêng</option><option value="studio">Studio</option></select>{fieldError("roomType")}</div>
                 <div><label htmlFor={`${formId}-gender`} className={labelClass}>Ưu tiên giới tính</label><select id={`${formId}-gender`} name="genderPreference" defaultValue={initialValue("genderPreference", "any")} className={inputClass} disabled={busy}><option value="any">Không yêu cầu</option><option value="male">Nam</option><option value="female">Nữ</option></select></div>
                 <div>
-                  <label htmlFor={`${formId}-area`} className={labelClass}>Diện tích (m², không bắt buộc)</label>
+                  <label htmlFor={`${formId}-area`} className={labelClass}>Diện tích (m²)</label>
                   <input id={`${formId}-area`} name="areaM2" type="number" min="0.5" max="9999.5" step="0.5"
                     value={area} onChange={(event) => setArea(event.target.value)} className={inputClass} disabled={busy} />
                   <div className="mt-2 flex flex-wrap gap-2">
@@ -261,16 +267,16 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><label htmlFor={`${formId}-place-name`} className={labelClass}>Tên địa điểm *</label><input id={`${formId}-place-name`} name="placeName" defaultValue={initialValue("placeName")} required maxLength={200} className={inputClass} disabled={busy} />{fieldError("placeName")}</div>
-                <div><label htmlFor={`${formId}-place-type`} className={labelClass}>Loại địa điểm *</label><select id={`${formId}-place-type`} name="placeType" required defaultValue={initialValue("placeType", "")} className={inputClass} disabled={busy}><option value="" disabled>Chọn loại địa điểm</option><option value="cafe">Cafe</option><option value="restaurant">Quán ăn</option><option value="street_food">Ăn vặt / đường phố</option><option value="photo">Photo</option><option value="other">Khác</option></select>{fieldError("placeType")}</div>
-                <div><label htmlFor={`${formId}-rating`} className={labelClass}>Đánh giá tổng thể *</label><select id={`${formId}-rating`} name="rating" required defaultValue={initialValue("rating", "5")} className={inputClass} disabled={busy}><option value="5">5 sao</option><option value="4">4 sao</option><option value="3">3 sao</option><option value="2">2 sao</option><option value="1">1 sao</option></select></div>
-                <div><label htmlFor={`${formId}-price-range`} className={labelClass}>Mức giá *</label><select id={`${formId}-price-range`} name="priceRange" required defaultValue={initialValue("priceRange", "medium")} className={inputClass} disabled={busy}><option value="low">Bình dân</option><option value="medium">Trung bình</option><option value="high">Cao</option></select></div>
+                <div><label htmlFor={`${formId}-place-name`} className={labelClass}>Tên địa điểm <span aria-hidden="true" className="text-red-600">*</span></label><input id={`${formId}-place-name`} name="placeName" defaultValue={initialValue("placeName")} required maxLength={200} className={inputClass} disabled={busy} />{fieldError("placeName")}</div>
+                <div><label htmlFor={`${formId}-place-type`} className={labelClass}>Loại địa điểm <span aria-hidden="true" className="text-red-600">*</span></label><select id={`${formId}-place-type`} name="placeType" required defaultValue={initialValue("placeType", "")} className={inputClass} disabled={busy}><option value="" disabled>Chọn loại địa điểm</option><option value="cafe">Cafe</option><option value="restaurant">Quán ăn</option><option value="street_food">Ăn vặt / đường phố</option><option value="photo">Photo</option><option value="other">Khác</option></select>{fieldError("placeType")}</div>
+                <div><span className={labelClass}>Đánh giá tổng thể <span aria-hidden="true" className="text-red-600">*</span></span><StarRatingInput name="rating" label="Đánh giá tổng thể" defaultValue={existingPost?.type === "review" ? existingPost.rating : 5} required disabled={busy} /></div>
+                <div><label htmlFor={`${formId}-price-range`} className={labelClass}>Mức giá <span aria-hidden="true" className="text-red-600">*</span></label><select id={`${formId}-price-range`} name="priceRange" required defaultValue={initialValue("priceRange", "medium")} className={inputClass} disabled={busy}><option value="low">Bình dân</option><option value="medium">Trung bình</option><option value="high">Cao</option></select></div>
                 <div><label htmlFor={`${formId}-reference-price`} className={labelClass}>Giá tham khảo (đ)</label><input id={`${formId}-reference-price`} name="referencePrice" defaultValue={initialValue("referencePrice")} type="number" min="0" max="2000000000" step="1000" className={inputClass} disabled={busy} /></div>
-                <div><label htmlFor={`${formId}-wifi`} className={labelClass}>Wifi (không bắt buộc)</label><select id={`${formId}-wifi`} name="wifiRating" defaultValue={initialValue("wifiRating", "")} className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
-                <div><label htmlFor={`${formId}-atmosphere`} className={labelClass}>Không gian (không bắt buộc)</label><select id={`${formId}-atmosphere`} name="atmosphereRating" defaultValue={initialValue("atmosphereRating", "")} className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
-                <div><label htmlFor={`${formId}-service`} className={labelClass}>Phục vụ (không bắt buộc)</label><select id={`${formId}-service`} name="serviceRating" defaultValue={initialValue("serviceRating", "")} className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
+                <div><span className={labelClass}>Wifi</span><StarRatingInput name="wifiRating" label="Wifi" defaultValue={existingPost?.type === "review" ? existingPost.wifiRating : null} disabled={busy} /></div>
+                <div><span className={labelClass}>Không gian</span><StarRatingInput name="atmosphereRating" label="Không gian" defaultValue={existingPost?.type === "review" ? existingPost.atmosphereRating : null} disabled={busy} /></div>
+                <div><span className={labelClass}>Phục vụ</span><StarRatingInput name="serviceRating" label="Phục vụ" defaultValue={existingPost?.type === "review" ? existingPost.serviceRating : null} disabled={busy} /></div>
               </div>
-              <div><label htmlFor={`${formId}-experience`} className={labelClass}>Trải nghiệm chi tiết (không bắt buộc)</label><textarea id={`${formId}-experience`} name="experience" defaultValue={initialValue("experience")} rows={3} className={inputClass} disabled={busy} /></div>
+              <div><label htmlFor={`${formId}-experience`} className={labelClass}>Trải nghiệm chi tiết</label><textarea id={`${formId}-experience`} name="experience" defaultValue={initialValue("experience")} rows={3} className={inputClass} disabled={busy} /></div>
             </>
           )}
 
@@ -290,7 +296,39 @@ export default function PostForm({ type, onClose, onCreated, existingPost }: Pos
           )}
           <div>
             <label htmlFor={`${formId}-images`} className={labelClass}>Ảnh đính kèm (tối đa 5 ảnh, mỗi ảnh 5 MB)</label>
-            <input id={`${formId}-images`} name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple className={`${inputClass} file:mr-3 file:rounded-full file:border-0 file:bg-[#e7f3ed] file:px-3 file:py-1 file:font-semibold file:text-[#187b5b]`} disabled={busy} />
+            <input id={`${formId}-images`} type="file" accept="image/jpeg,image/png,image/webp" multiple
+              onChange={(event) => {
+                const files = Array.from(event.currentTarget.files ?? []);
+                event.currentTarget.value = "";
+                if (!files.length) return;
+                if (files.some((file) => !allowedImageTypes.has(file.type) || file.size > maxImageBytes)) {
+                  setError("Ảnh phải là JPEG, PNG hoặc WebP và không vượt quá 5 MB.");
+                  return;
+                }
+                if (imageFiles.length + files.length + keepImageIds.length > 5) {
+                  setError("Mỗi bài chỉ được đính kèm tối đa 5 ảnh.");
+                  return;
+                }
+                setImageFiles((current) => [...current, ...files]);
+                setError("");
+              }} className={`${inputClass} file:mr-3 file:rounded-full file:border-0 file:bg-[#e7f3ed] file:px-3 file:py-1 file:font-semibold file:text-[#187b5b]`} disabled={busy} />
+            {imageFiles.length > 0 && (
+              <ul aria-label="Ảnh đã chọn" className="mt-3 space-y-2">
+                {imageFiles.map((file, index) => (
+                  <li key={`${index}-${file.name}`} className="flex items-center justify-between gap-3 rounded-xl border border-[#dce4dd] bg-white px-3 py-2 text-sm">
+                    <span className="min-w-0 truncate">{file.name}</span>
+                    <button type="button" disabled={busy} aria-label={`Xóa ảnh ${file.name}`}
+                      onClick={() => {
+                        setImageFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
+                        setError("");
+                      }}
+                      className="shrink-0 rounded-full px-3 py-1 font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                      Xóa
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           {error && <Toast kind="error">{error}</Toast>}

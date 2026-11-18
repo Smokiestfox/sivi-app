@@ -1,5 +1,6 @@
 "use client";
 
+import { StarRating } from "@/components/ui/StarRating";
 import { districts } from "./options";
 
 import Image from "next/image";
@@ -182,7 +183,7 @@ export default function PostList({ posts, type, user }: PostListProps) {
                     {post.type === "roommate" ? roomLabels[post.roomType] : placeLabels[post.placeType]}
                   </span>
                   {post.type === "roommate" && post.district && <span className="text-xs text-[#819188]">{post.district}</span>}
-                  {post.type === "review" && <span className="text-sm font-bold text-[#d98242]">{"★".repeat(post.rating)}{"☆".repeat(5 - post.rating)} <span className="text-[#64766e]">{post.rating}/5</span></span>}
+                  {post.type === "review" && <StarRating value={post.rating} />}
                 </div>
                 <h2 className="mt-3 text-xl font-bold text-[#18352d] group-hover:text-[#187b5b]">{post.title}</h2>
                 <p className="mt-2 line-clamp-3 whitespace-pre-line text-sm leading-6 text-[#64766e]">{post.content}</p>
