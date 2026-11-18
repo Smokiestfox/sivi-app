@@ -7,7 +7,7 @@ export default async function SiteHeader() {
   const user = await getCurrentUser();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[#e5e9e2] bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-[#dddccf] bg-[#fffdf7]/95 backdrop-blur">
       <div className="mx-auto flex min-h-16 max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
         <Link href="/" aria-label="SiVi - Tìm chỗ ở" className="text-2xl font-black tracking-tight text-[#187b5b]">
           sivi<span className="text-[#e7a65a]">.</span>
@@ -20,7 +20,7 @@ export default async function SiteHeader() {
         <div className="ml-auto flex items-center gap-2 sm:ml-0">
           {user ? (
             <>
-              <span className="max-w-32 truncate text-sm font-semibold text-[#36564a] sm:max-w-48">{user.name}</span>
+              <Link href="/profile" className="max-w-32 truncate text-sm font-semibold text-[#36564a] hover:text-[#187b5b] sm:max-w-48">{user.name}</Link>
               {user.role === "student" && user.isVerified ? (
                 <span className="rounded-full bg-[#e7f3ed] px-3 py-1 text-xs font-bold text-[#187b5b]">Sinh viên</span>
               ) : user.role === "guest" ? (

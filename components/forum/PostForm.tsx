@@ -2,6 +2,8 @@
 
 import { useId, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import type { PostDto } from "@/server/posts/service";
+import { districts } from "./options";
 import StudentVerificationForm from "@/components/profile/StudentVerificationForm";
 import { Toast } from "@/components/ui/Feedback";
 
@@ -11,6 +13,7 @@ type PostFormProps = {
   type: PostType;
   onClose: () => void;
   onCreated: () => void;
+  existingPost?: PostDto;
 };
 
 const maxImageBytes = 5 * 1024 * 1024;
@@ -28,10 +31,21 @@ function apiError(body: unknown): { message: string; fields?: Record<string, str
   return message ? { message, fields } : null;
 }
 
-export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
+export default function PostForm({ type, onClose, onCreated, existingPost }: PostFormProps) {
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
+  const [rent, setRent] = useState(existingPost?.type === "roommate" ? String(existingPost.rent) : "");
+  const [area, setArea] = useState(existingPost?.type === "roommate" && existingPost.areaM2 != null ? String(existingPost.areaM2) : "");
+  const initialDistrict = existingPost?.type === "roommate" ? existingPost.district ?? "" : "";
+  const [district, setDistrict] = useState(initialDistrict && !districts.includes(initialDistrict) ? "other" : initialDistrict);
+  const [otherDistrict, setOtherDistrict] = useState(initialDistrict);
+  const [keepImageIds, setKeepImageIds] = useState(existingPost?.images.map((image) => image.id) ?? []);
+  const initial: Record<string, unknown> = existingPost ? { ...existingPost } : {};
+  function initialValue(name: string, fallback = "") {
+    const value = initial[name];
+    return Array.isArray(value) ? value.join(", ") : value == null ? fallback : String(value);
+  }
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
@@ -47,7 +61,7 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
     setFieldErrors({});
     const data = new FormData(form);
     const imageFiles = data.getAll("images").filter((file): file is File => file instanceof File && file.size > 0);
-    if (imageFiles.length > 5) {
+    if (imageFiles.length + keepImageIds.length > 5) {
       setError("Mỗi bài chỉ được đính kèm tối đa 5 ảnh.");
       return;
     }
@@ -93,12 +107,13 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
 
     const request = new FormData();
     request.set("payload", JSON.stringify(payload));
+    if (existingPost) request.set("keepImageIds", JSON.stringify(keepImageIds));
     for (const file of imageFiles) request.append("images", file);
 
     setBusy(true);
     try {
-      const response = await fetch("/api/posts", {
-        method: "POST",
+      const response = await fetch(existingPost ? `/api/posts/${existingPost.id}` : "/api/posts", {
+        method: existingPost ? "PATCH" : "POST",
         credentials: "same-origin",
         body: request,
       });
@@ -152,7 +167,7 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
               {type === "roommate" ? "Tìm bạn cùng nhà" : "Chia sẻ trải nghiệm"}
             </p>
             <h2 id={`${formId}-title`} className="mt-2 text-2xl font-bold text-[#18352d]">
-              {type === "roommate" ? "Đăng tin tìm roommate" : "Viết review địa điểm"}
+              {existingPost ? "Sửa bài viết" : type === "roommate" ? "Đăng tin tìm roommate" : "Viết review địa điểm"}
             </h2>
           </div>
           <button type="button" aria-label="Đóng form" disabled={busy} onClick={onClose} className="rounded-full px-3 py-1 text-xl text-[#64766e] hover:bg-[#eef2ed]">
@@ -163,56 +178,116 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
         <form ref={formRef} onSubmit={submit} aria-busy={busy} className="mt-6 space-y-5">
           <div>
             <label htmlFor={`${formId}-title-field`} className={labelClass}>Tiêu đề *</label>
-            <input id={`${formId}-title-field`} name="title" required maxLength={120} className={inputClass} disabled={busy} />
+            <input id={`${formId}-title-field`} name="title" defaultValue={initialValue("title")} required maxLength={120} className={inputClass} disabled={busy} />
             {fieldError("title")}
           </div>
           <div>
             <label htmlFor={`${formId}-content`} className={labelClass}>{type === "roommate" ? "Mô tả *" : "Nội dung review *"}</label>
-            <textarea id={`${formId}-content`} name="content" required minLength={1} maxLength={5000} rows={5} className={inputClass} disabled={busy} />
+            <textarea id={`${formId}-content`} name="content" defaultValue={initialValue("content")} required minLength={1} maxLength={5000} rows={5} className={inputClass} disabled={busy} />
             {fieldError("content")}
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor={`${formId}-address`} className={labelClass}>{type === "roommate" ? "Khu vực / địa chỉ" : "Địa chỉ địa điểm"}</label>
-              <input id={`${formId}-address`} name="address" maxLength={300} className={inputClass} disabled={busy} />
+              <input id={`${formId}-address`} name="address" defaultValue={initialValue("address")} list={`${formId}-address-options`} placeholder="Chọn gợi ý hoặc nhập địa chỉ cụ thể" maxLength={300} className={inputClass} disabled={busy} />
+              <datalist id={`${formId}-address-options`}>
+                {districts.map((name) => <option key={name} value={name} />)}
+              </datalist>
               {fieldError("address")}
             </div>
             <div>
               <label htmlFor={`${formId}-maps`} className={labelClass}>Link Google Maps (không bắt buộc)</label>
-              <input id={`${formId}-maps`} name="googleMapsUrl" type="url" className={inputClass} disabled={busy} />
+              <input id={`${formId}-maps`} name="googleMapsUrl" defaultValue={initialValue("googleMapsUrl")} type="url" className={inputClass} disabled={busy} />
             </div>
           </div>
 
           {type === "roommate" ? (
             <>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><label htmlFor={`${formId}-rent`} className={labelClass}>Giá thuê mỗi tháng (đ) *</label><input id={`${formId}-rent`} name="rent" type="number" min="0" max="2000000000" step="1000" required className={inputClass} disabled={busy} />{fieldError("rent")}</div>
-                <div><label htmlFor={`${formId}-people`} className={labelClass}>Số người cần tìm *</label><input id={`${formId}-people`} name="peopleNeeded" type="number" min="1" max="20" required defaultValue="1" className={inputClass} disabled={busy} />{fieldError("peopleNeeded")}</div>
-                <div><label htmlFor={`${formId}-district`} className={labelClass}>Quận / huyện</label><input id={`${formId}-district`} name="district" maxLength={100} className={inputClass} disabled={busy} />{fieldError("district")}</div>
-                <div><label htmlFor={`${formId}-room-type`} className={labelClass}>Loại phòng *</label><select id={`${formId}-room-type`} name="roomType" required defaultValue="" className={inputClass} disabled={busy}><option value="" disabled>Chọn loại phòng</option><option value="shared">Ở ghép</option><option value="private">Phòng riêng</option><option value="studio">Studio</option></select>{fieldError("roomType")}</div>
-                <div><label htmlFor={`${formId}-gender`} className={labelClass}>Ưu tiên giới tính</label><select id={`${formId}-gender`} name="genderPreference" defaultValue="any" className={inputClass} disabled={busy}><option value="any">Không yêu cầu</option><option value="male">Nam</option><option value="female">Nữ</option></select></div>
-                <div><label htmlFor={`${formId}-area`} className={labelClass}>Diện tích (m², không bắt buộc)</label><input id={`${formId}-area`} name="areaM2" type="number" min="0.01" max="9999.99" step="0.01" className={inputClass} disabled={busy} /></div>
+                <div>
+                  <label htmlFor={`${formId}-rent`} className={labelClass}>Giá thuê mỗi tháng (đ) *</label>
+                  <input id={`${formId}-rent`} name="rent" type="number" min="0" max="2000000000" step="1000"
+                    required value={rent} onChange={(event) => setRent(event.target.value)} className={inputClass} disabled={busy} />
+                  <input type="range" aria-label="Chọn nhanh giá thuê" min="0" max="15000000" step="100000"
+                    value={Math.min(Number(rent) || 0, 15000000)} onChange={(event) => setRent(event.target.value)}
+                    disabled={busy} className="mt-3 w-full accent-[#187b5b]" />
+                  <div className="flex justify-between text-xs text-[#64766e]"><span>0 đ</span><span>15 triệu+</span></div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {[1, 2, 3, 5, 7, 10, 15].map((price) => (
+                      <button key={price} type="button" disabled={busy} onClick={() => setRent(String(price * 1000000))}
+                        className="rounded-full border border-[#dce4dd] px-3 py-1 text-xs text-[#187b5b] hover:bg-[#e7f3ed]">
+                        {price} triệu
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-[#64766e]">Giá trên 15 triệu: nhập số tiền vào ô phía trên.</p>
+                  {fieldError("rent")}
+                </div>
+                <div><label htmlFor={`${formId}-people`} className={labelClass}>Số người cần tìm *</label><input id={`${formId}-people`} name="peopleNeeded" type="number" min="1" max="20" required defaultValue={initialValue("peopleNeeded", "1")} className={inputClass} disabled={busy} />{fieldError("peopleNeeded")}</div>
+                <div>
+                  <label htmlFor={`${formId}-district`} className={labelClass}>Khu vực / quận</label>
+                  <select id={`${formId}-district`} value={district} onChange={(event) => setDistrict(event.target.value)}
+                    className={inputClass} disabled={busy}>
+                    <option value="">Chọn khu vực</option>
+                    {districts.map((name) => <option key={name} value={name}>{name}</option>)}
+                    <option value="other">Khác</option>
+                  </select>
+                  <input type="hidden" name="district" value={district === "other" ? otherDistrict : district} />
+                  {district === "other" && <input aria-label="Tên khu vực khác" placeholder="Nhập khu vực khác"
+                    value={otherDistrict} onChange={(event) => setOtherDistrict(event.target.value)} maxLength={100}
+                    className={inputClass} disabled={busy} required />}
+                  {fieldError("district")}
+                </div>
+                <div><label htmlFor={`${formId}-room-type`} className={labelClass}>Loại phòng *</label><select id={`${formId}-room-type`} name="roomType" required defaultValue={initialValue("roomType", "")} className={inputClass} disabled={busy}><option value="" disabled>Chọn loại phòng</option><option value="shared">Ở ghép</option><option value="private">Phòng riêng</option><option value="studio">Studio</option></select>{fieldError("roomType")}</div>
+                <div><label htmlFor={`${formId}-gender`} className={labelClass}>Ưu tiên giới tính</label><select id={`${formId}-gender`} name="genderPreference" defaultValue={initialValue("genderPreference", "any")} className={inputClass} disabled={busy}><option value="any">Không yêu cầu</option><option value="male">Nam</option><option value="female">Nữ</option></select></div>
+                <div>
+                  <label htmlFor={`${formId}-area`} className={labelClass}>Diện tích (m², không bắt buộc)</label>
+                  <input id={`${formId}-area`} name="areaM2" type="number" min="0.5" max="9999.5" step="0.5"
+                    value={area} onChange={(event) => setArea(event.target.value)} className={inputClass} disabled={busy} />
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {[15, 20, 25, 30, 40, 50].map((size) => (
+                      <button key={size} type="button" disabled={busy} onClick={() => setArea(String(size))}
+                        className="rounded-full border border-[#dce4dd] px-3 py-1 text-xs text-[#187b5b] hover:bg-[#e7f3ed]">
+                        {size} m²
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div><label htmlFor={`${formId}-contact`} className={labelClass}>Thông tin liên hệ (Zalo / email / số điện thoại)</label><input id={`${formId}-contact`} name="contactInfo" maxLength={255} className={inputClass} disabled={busy} /><p className="mt-1 text-xs text-[#819188]">Thông tin này sẽ được AI kiểm duyệt cùng nội dung bài.</p></div>
-              <div><label htmlFor={`${formId}-amenities`} className={labelClass}>Tiện ích (phân cách bằng dấu phẩy)</label><input id={`${formId}-amenities`} name="amenities" placeholder="Wifi, máy giặt, chỗ để xe" className={inputClass} disabled={busy} /></div>
-              <div><label htmlFor={`${formId}-requirements`} className={labelClass}>Yêu cầu với roommate</label><textarea id={`${formId}-requirements`} name="roommateRequirements" rows={2} className={inputClass} disabled={busy} /></div>
+              <div><label htmlFor={`${formId}-contact`} className={labelClass}>Thông tin liên hệ (Zalo / email / số điện thoại)</label><input id={`${formId}-contact`} name="contactInfo" defaultValue={initialValue("contactInfo")} maxLength={255} className={inputClass} disabled={busy} /><p className="mt-1 text-xs text-[#819188]">Thông tin này sẽ được AI kiểm duyệt cùng nội dung bài.</p></div>
+              <div><label htmlFor={`${formId}-amenities`} className={labelClass}>Tiện ích (phân cách bằng dấu phẩy)</label><input id={`${formId}-amenities`} name="amenities" defaultValue={initialValue("amenities")} placeholder="Wifi, máy giặt, chỗ để xe" className={inputClass} disabled={busy} /></div>
+              <div><label htmlFor={`${formId}-requirements`} className={labelClass}>Yêu cầu với roommate</label><textarea id={`${formId}-requirements`} name="roommateRequirements" defaultValue={initialValue("roommateRequirements")} rows={2} className={inputClass} disabled={busy} /></div>
             </>
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2">
-                <div><label htmlFor={`${formId}-place-name`} className={labelClass}>Tên địa điểm *</label><input id={`${formId}-place-name`} name="placeName" required maxLength={200} className={inputClass} disabled={busy} />{fieldError("placeName")}</div>
-                <div><label htmlFor={`${formId}-place-type`} className={labelClass}>Loại địa điểm *</label><select id={`${formId}-place-type`} name="placeType" required defaultValue="" className={inputClass} disabled={busy}><option value="" disabled>Chọn loại địa điểm</option><option value="cafe">Cafe</option><option value="restaurant">Quán ăn</option><option value="street_food">Ăn vặt / đường phố</option><option value="photo">Photo</option><option value="other">Khác</option></select>{fieldError("placeType")}</div>
-                <div><label htmlFor={`${formId}-rating`} className={labelClass}>Đánh giá tổng thể *</label><select id={`${formId}-rating`} name="rating" required defaultValue="5" className={inputClass} disabled={busy}><option value="5">5 sao</option><option value="4">4 sao</option><option value="3">3 sao</option><option value="2">2 sao</option><option value="1">1 sao</option></select></div>
-                <div><label htmlFor={`${formId}-price-range`} className={labelClass}>Mức giá *</label><select id={`${formId}-price-range`} name="priceRange" required defaultValue="medium" className={inputClass} disabled={busy}><option value="low">Bình dân</option><option value="medium">Trung bình</option><option value="high">Cao</option></select></div>
-                <div><label htmlFor={`${formId}-reference-price`} className={labelClass}>Giá tham khảo (đ)</label><input id={`${formId}-reference-price`} name="referencePrice" type="number" min="0" max="2000000000" step="1000" className={inputClass} disabled={busy} /></div>
-                <div><label htmlFor={`${formId}-wifi`} className={labelClass}>Wifi (không bắt buộc)</label><select id={`${formId}-wifi`} name="wifiRating" defaultValue="" className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
-                <div><label htmlFor={`${formId}-atmosphere`} className={labelClass}>Không gian (không bắt buộc)</label><select id={`${formId}-atmosphere`} name="atmosphereRating" defaultValue="" className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
-                <div><label htmlFor={`${formId}-service`} className={labelClass}>Phục vụ (không bắt buộc)</label><select id={`${formId}-service`} name="serviceRating" defaultValue="" className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
+                <div><label htmlFor={`${formId}-place-name`} className={labelClass}>Tên địa điểm *</label><input id={`${formId}-place-name`} name="placeName" defaultValue={initialValue("placeName")} required maxLength={200} className={inputClass} disabled={busy} />{fieldError("placeName")}</div>
+                <div><label htmlFor={`${formId}-place-type`} className={labelClass}>Loại địa điểm *</label><select id={`${formId}-place-type`} name="placeType" required defaultValue={initialValue("placeType", "")} className={inputClass} disabled={busy}><option value="" disabled>Chọn loại địa điểm</option><option value="cafe">Cafe</option><option value="restaurant">Quán ăn</option><option value="street_food">Ăn vặt / đường phố</option><option value="photo">Photo</option><option value="other">Khác</option></select>{fieldError("placeType")}</div>
+                <div><label htmlFor={`${formId}-rating`} className={labelClass}>Đánh giá tổng thể *</label><select id={`${formId}-rating`} name="rating" required defaultValue={initialValue("rating", "5")} className={inputClass} disabled={busy}><option value="5">5 sao</option><option value="4">4 sao</option><option value="3">3 sao</option><option value="2">2 sao</option><option value="1">1 sao</option></select></div>
+                <div><label htmlFor={`${formId}-price-range`} className={labelClass}>Mức giá *</label><select id={`${formId}-price-range`} name="priceRange" required defaultValue={initialValue("priceRange", "medium")} className={inputClass} disabled={busy}><option value="low">Bình dân</option><option value="medium">Trung bình</option><option value="high">Cao</option></select></div>
+                <div><label htmlFor={`${formId}-reference-price`} className={labelClass}>Giá tham khảo (đ)</label><input id={`${formId}-reference-price`} name="referencePrice" defaultValue={initialValue("referencePrice")} type="number" min="0" max="2000000000" step="1000" className={inputClass} disabled={busy} /></div>
+                <div><label htmlFor={`${formId}-wifi`} className={labelClass}>Wifi (không bắt buộc)</label><select id={`${formId}-wifi`} name="wifiRating" defaultValue={initialValue("wifiRating", "")} className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
+                <div><label htmlFor={`${formId}-atmosphere`} className={labelClass}>Không gian (không bắt buộc)</label><select id={`${formId}-atmosphere`} name="atmosphereRating" defaultValue={initialValue("atmosphereRating", "")} className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
+                <div><label htmlFor={`${formId}-service`} className={labelClass}>Phục vụ (không bắt buộc)</label><select id={`${formId}-service`} name="serviceRating" defaultValue={initialValue("serviceRating", "")} className={inputClass} disabled={busy}><option value="">Chưa đánh giá</option>{[5, 4, 3, 2, 1].map((rating) => <option key={rating} value={rating}>{rating} sao</option>)}</select></div>
               </div>
-              <div><label htmlFor={`${formId}-experience`} className={labelClass}>Trải nghiệm chi tiết (không bắt buộc)</label><textarea id={`${formId}-experience`} name="experience" rows={3} className={inputClass} disabled={busy} /></div>
+              <div><label htmlFor={`${formId}-experience`} className={labelClass}>Trải nghiệm chi tiết (không bắt buộc)</label><textarea id={`${formId}-experience`} name="experience" defaultValue={initialValue("experience")} rows={3} className={inputClass} disabled={busy} /></div>
             </>
           )}
 
+          {existingPost && existingPost.images.length > 0 && (
+            <fieldset className="rounded-xl border border-[#dce4dd] p-3">
+              <legend className="px-1 text-sm font-semibold">Ảnh hiện tại — bỏ chọn để xóa</legend>
+              <div className="flex flex-wrap gap-3">
+                {existingPost.images.map((image, index) => (
+                  <label key={image.id} className="flex items-center gap-2 text-sm">
+                    <input type="checkbox" disabled={busy} checked={keepImageIds.includes(image.id)}
+                      onChange={(event) => setKeepImageIds((ids) => event.target.checked ? [...ids, image.id] : ids.filter((id) => id !== image.id))} />
+                    Ảnh {index + 1}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          )}
           <div>
             <label htmlFor={`${formId}-images`} className={labelClass}>Ảnh đính kèm (tối đa 5 ảnh, mỗi ảnh 5 MB)</label>
             <input id={`${formId}-images`} name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple className={`${inputClass} file:mr-3 file:rounded-full file:border-0 file:bg-[#e7f3ed] file:px-3 file:py-1 file:font-semibold file:text-[#187b5b]`} disabled={busy} />
@@ -228,7 +303,7 @@ export default function PostForm({ type, onClose, onCreated }: PostFormProps) {
           {busy && <Toast kind="moderating">Đang gửi bài và chờ hệ thống kiểm duyệt AI...</Toast>}
           <div className="flex flex-col-reverse gap-3 border-t border-[#e5e9e2] pt-5 sm:flex-row sm:justify-end">
             <button type="button" disabled={busy} onClick={onClose} className="rounded-full border border-[#dce4dd] px-5 py-3 text-sm font-bold text-[#53685f] disabled:opacity-50">Hủy</button>
-            <button type="submit" disabled={busy} className="rounded-full bg-[#187b5b] px-6 py-3 text-sm font-bold text-white hover:bg-[#126448] disabled:opacity-60">{busy ? "Đang kiểm duyệt..." : type === "roommate" ? "Đăng tin" : "Gửi review"}</button>
+            <button type="submit" disabled={busy} className="rounded-full bg-[#187b5b] px-6 py-3 text-sm font-bold text-white hover:bg-[#126448] disabled:opacity-60">{busy ? "Đang kiểm duyệt..." : existingPost ? "Lưu thay đổi" : type === "roommate" ? "Đăng tin" : "Gửi review"}</button>
           </div>
         </form>
       </section>

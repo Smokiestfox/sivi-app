@@ -132,7 +132,7 @@ export default function CommentForm({
   }
 
   return (
-    <form onSubmit={submitComment} noValidate aria-busy={busy} className="mt-5">
+    <form onSubmit={submitComment} noValidate aria-busy={busy} className="mt-5 rounded-2xl bg-[#f0f3eb] p-4">
       <label htmlFor={inputId} className="sr-only">Nội dung bình luận</label>
       <textarea
         id={inputId}
@@ -150,7 +150,7 @@ export default function CommentForm({
           setSuccess("");
         }}
         placeholder="Chia sẻ ý kiến của bạn..."
-        className="w-full rounded-xl border border-[#dce4dd] px-4 py-3 outline-none focus:border-[#187b5b] disabled:opacity-60"
+        className="w-full bg-[#fffefa] rounded-xl border border-[#dce4dd] px-4 py-3 outline-none focus:border-[#187b5b] disabled:opacity-60"
       />
       {error && <p id={errorId} role="alert" className="mt-2 text-sm text-red-700">{error}</p>}
       {success && <p role="status" className="mt-2 text-sm text-[#187b5b]">{success}</p>}
